@@ -8,6 +8,7 @@ export function useRemunerationSearch() {
   const router = useRouter()
 
   const appliedFilters = ref<SearchFilters>({
+    fonte: route.query.fonte === 'SENADO' ? 'SENADO' : 'DF',
     nome: (route.query.nome as string) || '',
     cpf: (route.query.cpf as string) || '',
     ano: route.query.ano ? Number(route.query.ano) : 2025,
@@ -56,7 +57,8 @@ export function useRemunerationSearch() {
   }
 
   const clearFilters = () => {
-    const defaults = {
+    const defaults: SearchFilters = {
+      fonte: appliedFilters.value.fonte,
       nome: '',
       cpf: '',
       cargo: '',

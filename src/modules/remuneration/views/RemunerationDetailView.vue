@@ -20,6 +20,15 @@ const { data: current, isLoading: loadingCurrent } = useQuery({
   queryFn: async () => {
     try {
       // Tenta busca robusta pelos atributos da URL primeiro (garante funcionamento se o id-path falhar)
+      if (route.query.fonte === 'SENADO' && route.query.nome) {
+        // Senado não expõe CPF: localiza pelo nome + competência
+        return await RemunerationService.getByAttributes({
+          fonte: 'SENADO',
+          nome: route.query.nome as string,
+          ano: Number(route.query.ano),
+          mes: route.query.mes as string,
+        })
+      }
       if (route.query.nome && route.query.cpf) {
         return await RemunerationService.getByAttributes({
           nome: route.query.nome as string,

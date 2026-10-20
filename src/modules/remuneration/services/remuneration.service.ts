@@ -1,7 +1,10 @@
 import httpClient from '@/core/http/client'
 import type { Remuneration, PaginationResponse, Execution } from '@/core/types/api'
 
+export type Fonte = 'DF' | 'SENADO'
+
 export interface SearchFilters {
+  fonte?: Fonte
   nome?: string
   cpf?: string
   ano?: number
@@ -51,8 +54,8 @@ export const RemunerationService = {
   /**
    * Busca listas distintas de cargos e órgãos para filtros.
    */
-  async getDistinctFilters(): Promise<{ cargos: string[]; orgaos: string[] }> {
-    const { data } = await httpClient.get('/remuneration/distinct-filters')
+  async getDistinctFilters(fonte: Fonte = 'DF'): Promise<{ cargos: string[]; orgaos: string[] }> {
+    const { data } = await httpClient.get('/remuneration/distinct-filters', { params: { fonte } })
     return data
   },
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Search, ChevronLeft, ChevronRight, FileDown, Filter } from 'lucide-vue-next'
 import { useQuery } from '@tanstack/vue-query'
 import { useRemunerationSearch } from '../composables/useRemunerationSearch'
@@ -22,10 +22,22 @@ const {
 
 const showMobileFilters = ref(false)
 
+const fontes = [
+  { v: 'DF', l: 'Governo do DF' },
+  { v: 'SENADO', l: 'Senado Federal' },
+]
+
+// Ao trocar de fonte, limpa cargo/órgão (cada fonte tem listas diferentes)
+const changeFonte = () => {
+  filters.value.cargo = ''
+  filters.value.orgao = ''
+  applySearch()
+}
+
 // Busca filtros distintos (Cargos e Órgãos) - Cache de 24h conforme API
 const { data: distinctFilters, isLoading: isLoadingFilters } = useQuery({
-  queryKey: ['remuneration', 'distinct-filters'],
-  queryFn: () => RemunerationService.getDistinctFilters(),
+  queryKey: ['remuneration', 'distinct-filters', computed(() => filters.value.fonte)],
+  queryFn: () => RemunerationService.getDistinctFilters(filters.value.fonte),
   staleTime: 1000 * 60 * 60 * 24, 
 })
 
@@ -99,6 +111,18 @@ const meses = [
       :class="{ 'hidden md:block': !showMobileFilters }"
     >
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xxl:grid-cols-6 gap-6">
+        <!-- Fonte -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Fonte</label>
+          <select
+            v-model="filters.fonte"
+            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-medium appearance-none cursor-pointer"
+            @change="changeFonte"
+          >
+            <option v-for="f in fontes" :key="f.v" :value="f.v">{{ f.l }}</option>
+          </select>
+        </div>
+
         <!-- Nome -->
         <div class="space-y-1">
           <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nome do Servidor</label>
@@ -188,6 +212,7 @@ const meses = [
               cpf: item.cpf_servidor,
               ano: item.ano_exercicio,
               mes: item.mes_referencia,
+              fonte: item.fonte,
             },
           }"
           class="font-bold text-slate-900 hover:text-slate-600 hover:underline decoration-slate-300 underline-offset-4"

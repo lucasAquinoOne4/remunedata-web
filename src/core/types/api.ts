@@ -8,6 +8,7 @@ export interface PaginationResponse<T> {
 
 export interface Remuneration {
   id: number
+  fonte?: 'DF' | 'SENADO'
   ano_exercicio: number
   mes_referencia: string
   nome_servidor: string
