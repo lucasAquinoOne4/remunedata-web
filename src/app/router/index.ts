@@ -77,6 +77,11 @@ const router = createRouter({
           name: 'recovery',
           component: () => import('@/modules/auth/views/RecoveryView.vue'),
         },
+        {
+          path: 'reset-password',
+          name: 'reset-password',
+          component: () => import('@/modules/auth/views/ResetPasswordView.vue'),
+        },
       ],
     },
     {
@@ -128,7 +133,12 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   // 2. Se o usuário já está logado e tenta acessar rotas de autenticação (login/signup) ou landing page
-  if (authStore.isAuthenticated && (to.path.startsWith('/auth') || to.path === '/')) {
+  // (reset-password fica de fora: o link de recuperação abre uma sessão temporária)
+  if (
+    authStore.isAuthenticated &&
+    to.name !== 'reset-password' &&
+    (to.path.startsWith('/auth') || to.path === '/')
+  ) {
     return next({ name: 'dashboard' })
   }
 
