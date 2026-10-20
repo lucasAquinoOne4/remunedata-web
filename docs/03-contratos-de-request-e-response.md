@@ -1,5 +1,7 @@
 # 03 - Contratos de Request e Response
 
+> **Atualização (2026-10-20):** a busca aceita `fonte` (`DF` ou `SENADO`) e a resposta traz `fonte`; também existe `/remuneration/distinct-filters?fonte=`. A consulta exige assinatura ativa e `size` aceita até 200. Ver [ADR 0001](adr/0001-seletor-de-fonte-e-redefinicao-de-senha.md).
+
 Este documento detalha os principais objetos JSON trafegados.
 
 ## 1. Pesquisa de Remuneração (`GET /remuneration/`)

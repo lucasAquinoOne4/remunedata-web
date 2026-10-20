@@ -1,5 +1,7 @@
 # 00 - Visão Geral
 
+> **Atualização (2026-10-20):** o frontend também consulta o Senado Federal (seletor de fonte DF/Senado). Ver [ADR 0001](adr/0001-seletor-de-fonte-e-redefinicao-de-senha.md).
+
 O **RemuneData** é uma plataforma de transparência focada na coleta, análise e visualização de dados de remuneração dos servidores públicos do Distrito Federal.
 
 ## O que é a API?
