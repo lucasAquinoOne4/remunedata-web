@@ -91,6 +91,19 @@ export function useRemunerationSearch() {
     ) as Record<Fonte, { total: number; capped: boolean } | null>,
   )
 
+  /** Parâmetros da fonte ativa para exportar o resultado atual (nulo em 'Todas'). */
+  const exportParams = computed(() => {
+    if (state.fonte === 'ALL' || !criteria.value) return null
+    const full = buildSearchParams({
+      fonte: state.fonte,
+      state: effective.value,
+      periods: periods.value,
+      page: 1,
+      size: 1,
+    })
+    return { ...full, page: undefined, size: undefined }
+  })
+
   const activeSource = computed(() => (state.fonte === 'ALL' ? null : sources[state.fonte]))
   const activeData = computed(() => (criteria.value ? activeSource.value?.data.value : undefined))
 
@@ -180,6 +193,7 @@ export function useRemunerationSearch() {
     sources,
     counts,
     activeData,
+    exportParams,
     isFetching,
     isInitialLoading,
     isError,

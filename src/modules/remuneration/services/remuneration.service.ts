@@ -63,6 +63,27 @@ export function normalizeSearch(
   }
 }
 
+export type ExportFormat = 'csv' | 'xlsx'
+
+/** Baixa o resultado da busca atual (CSV até 5.000 linhas, XLSX até 1.000). Recurso de assinante. */
+export async function exportSearch(
+  params: Omit<SearchParams, 'page' | 'size'>,
+  formato: ExportFormat,
+): Promise<void> {
+  const response = await httpClient.get<Blob>('remuneration/export', {
+    params: { ...cleanParams(params), formato },
+    responseType: 'blob',
+  })
+  const url = window.URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `remunedata_${(params.fonte ?? 'busca').toLowerCase()}.${formato}`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+
 export const RemunerationService = {
   async search(params: SearchParams, signal?: AbortSignal): Promise<RemunerationSearchResponse> {
     try {

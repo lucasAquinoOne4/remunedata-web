@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { SlidersHorizontal, X, SearchX, Lightbulb } from 'lucide-vue-next'
+import { SlidersHorizontal, X, SearchX, Lightbulb, FileDown } from 'lucide-vue-next'
 import { FONTE_LABEL, FONTES, type Fonte, type Suggestion } from '@/core/types/api'
 import { useRemunerationSearch } from '../composables/useRemunerationSearch'
 import { useSuggest } from '../composables/useSuggest'
 import { formatTotal, PREVIEW_SIZE } from '../utils/search'
+import { exportSearch, type ExportFormat } from '../services/remuneration.service'
 import BaseSkeleton from '@/shared/ui/BaseSkeleton.vue'
 import SearchBox from '../components/SearchBox.vue'
 import SearchTabs from '../components/SearchTabs.vue'
@@ -28,6 +29,22 @@ const filtersActive = computed(() => search.chips.value.length > 0)
 function pickSuggestion(s: Suggestion) {
   state.nome = s.nome
   search.flushNome()
+}
+
+const exporting = ref<ExportFormat | null>(null)
+const exportError = ref(false)
+async function doExport(formato: ExportFormat) {
+  const params = search.exportParams.value
+  if (!params) return
+  exporting.value = formato
+  exportError.value = false
+  try {
+    await exportSearch(params, formato)
+  } catch {
+    exportError.value = true
+  } finally {
+    exporting.value = null
+  }
 }
 
 const examples = ['Maria da Silva', 'Professor', 'Médico', 'Analista']
@@ -198,6 +215,21 @@ const noResults = computed(
 
     <!-- Fonte específica -->
     <div v-else-if="search.activeData.value" class="space-y-4" :class="{ 'opacity-70 transition-opacity': search.isFetching.value }">
+      <div class="flex items-center justify-end gap-2 text-sm">
+        <span v-if="exportError" class="text-red-600 font-medium">Não foi possível exportar.</span>
+        <button
+          v-for="f in (['csv', 'xlsx'] as const)"
+          :key="f"
+          type="button"
+          :disabled="exporting !== null"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-50"
+          :title="f === 'csv' ? 'Até 5.000 linhas' : 'Até 1.000 linhas'"
+          @click="doExport(f)"
+        >
+          <FileDown class="w-4 h-4" />
+          {{ exporting === f ? 'Gerando...' : f.toUpperCase() }}
+        </button>
+      </div>
       <ResultList :items="search.activeData.value.items" :term="term" />
       <PaginationBar
         :page="state.page"
