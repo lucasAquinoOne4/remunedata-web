@@ -1,275 +1,212 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Search, ChevronLeft, ChevronRight, FileDown, Filter } from 'lucide-vue-next'
-import { useQuery } from '@tanstack/vue-query'
+import { SlidersHorizontal, X, SearchX, Lightbulb } from 'lucide-vue-next'
+import { FONTE_LABEL, FONTES, type Fonte, type Suggestion } from '@/core/types/api'
 import { useRemunerationSearch } from '../composables/useRemunerationSearch'
-import { RemunerationService } from '../services/remuneration.service'
-import { formatCurrency } from '@/core/formatters/currency'
-import { formatCompetence } from '@/core/formatters/date'
-import BaseButton from '@/shared/ui/BaseButton.vue'
-import BaseTable from '@/shared/ui/BaseTable.vue'
-import BaseSelectSearch from '@/shared/ui/BaseSelectSearch.vue'
+import { useSuggest } from '../composables/useSuggest'
+import { formatTotal, PREVIEW_SIZE } from '../utils/search'
 import BaseSkeleton from '@/shared/ui/BaseSkeleton.vue'
+import SearchBox from '../components/SearchBox.vue'
+import SearchTabs from '../components/SearchTabs.vue'
+import SearchFilters from '../components/SearchFilters.vue'
+import ResultList from '../components/ResultList.vue'
+import PaginationBar from '../components/PaginationBar.vue'
+import FonteBadge from '../components/FonteBadge.vue'
 
-const { 
-  filters, 
-  data, 
-  isFetching,
-  isLoading: isInitialLoading,
-  setPage, 
-  applySearch 
-} = useRemunerationSearch()
+const search = useRemunerationSearch()
+const { state, effective, sources, counts } = search
 
-const showMobileFilters = ref(false)
+const showFilters = ref(false)
+const nomeRef = computed({ get: () => state.nome, set: (v: string) => (state.nome = v) })
+const fonteRef = computed(() => state.fonte)
+const typing = computed(() => state.nome.trim().length >= 3)
+const { suggestions, isFetching: suggestLoading } = useSuggest(nomeRef, fonteRef, typing)
 
-const fontes = [
-  { v: 'DF', l: 'Governo do DF' },
-  { v: 'SENADO', l: 'Senado Federal' },
-]
+const term = computed(() => effective.value.nome)
+const filtersActive = computed(() => search.chips.value.length > 0)
 
-// Ao trocar de fonte, limpa cargo/órgão (cada fonte tem listas diferentes)
-const changeFonte = () => {
-  filters.value.cargo = ''
-  filters.value.orgao = ''
-  applySearch()
+function pickSuggestion(s: Suggestion) {
+  state.nome = s.nome
+  search.flushNome()
 }
 
-// Busca filtros distintos (Cargos e Órgãos) - Cache de 24h conforme API
-const { data: distinctFilters, isLoading: isLoadingFilters } = useQuery({
-  queryKey: ['remuneration', 'distinct-filters', computed(() => filters.value.fonte)],
-  queryFn: () => RemunerationService.getDistinctFilters(filters.value.fonte),
-  staleTime: 1000 * 60 * 60 * 24, 
-})
-
-const handleExport = async (type: 'xlsx' | 'csv') => {
-  try {
-    const url = await RemunerationService.getExportUrl(type)
-    window.open(url, '_blank')
-  } catch {
-    window.alert('Erro ao gerar exportação. Verifique se existem execuções finalizadas.')
-  }
+const examples = ['Maria da Silva', 'Professor', 'Médico', 'Analista']
+function tryExample(text: string) {
+  state.nome = text
+  search.flushNome()
 }
 
-const tableHeaders = [
-  { key: 'nome_servidor', label: 'Servidor' },
-  { key: 'orgao', label: 'Órgão', class: 'hidden lg:table-cell' },
-  { key: 'cargo', label: 'Cargo', class: 'hidden md:table-cell' },
-  { key: 'referencia', label: 'Referência' },
-  { key: 'valor_bruto', label: 'Vlr. Bruto' },
-  { key: 'valor_liquido', label: 'Vlr. Líquido' },
-]
+function seeAll(f: Fonte) {
+  search.setFonte(f)
+}
 
-const anos = [2026, 2025, 2024, 2023, 2022, 2021, 2020]
-const meses = [
-  { v: '01', l: 'Janeiro' },
-  { v: '02', l: 'Fevereiro' },
-  { v: '03', l: 'Março' },
-  { v: '04', l: 'Abril' },
-  { v: '05', l: 'Maio' },
-  { v: '06', l: 'Junho' },
-  { v: '07', l: 'Julho' },
-  { v: '08', l: 'Agosto' },
-  { v: '09', l: 'Setembro' },
-  { v: '10', l: 'Outubro' },
-  { v: '11', l: 'Novembro' },
-  { v: '12', l: 'Dezembro' },
-]
+const total = computed(() =>
+  state.fonte === 'ALL'
+    ? FONTES.reduce((acc, f) => acc + (counts.value[f]?.total ?? 0), 0)
+    : (search.activeData.value?.total ?? 0),
+)
+const noResults = computed(
+  () => search.criteria.value && !search.isInitialLoading.value && !search.isError.value && total.value === 0,
+)
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div class="flex flex-col gap-1">
-        <h2 class="text-3xl font-bold text-slate-900 font-serif tracking-tight">Consulta Pública</h2>
-        <p class="text-slate-500 font-medium">Explore os dados de remuneração do Distrito Federal.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <BaseButton 
-          variant="outline" 
-          class="md:hidden gap-2" 
-          @click="showMobileFilters = !showMobileFilters"
-        >
-          <Filter class="w-4 h-4" />
-          Filtros
-        </BaseButton>
-        <div class="hidden sm:flex gap-2">
-          <BaseButton variant="outline" class="gap-2 text-xs font-bold" @click="handleExport('xlsx')">
-            <FileDown class="w-4 h-4" />
-            XLSX (1k)
-          </BaseButton>
-          <BaseButton variant="outline" class="gap-2 text-xs font-bold" @click="handleExport('csv')">
-            <FileDown class="w-4 h-4" />
-            CSV (5k)
-          </BaseButton>
-        </div>
-      </div>
-    </div>
-  
-    <!-- Filtros -->
-    <div 
-      class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 transition-all"
-      :class="{ 'hidden md:block': !showMobileFilters }"
-    >
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xxl:grid-cols-6 gap-6">
-        <!-- Fonte -->
-        <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Fonte</label>
-          <select
-            v-model="filters.fonte"
-            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-medium appearance-none cursor-pointer"
-            @change="changeFonte"
-          >
-            <option v-for="f in fontes" :key="f.v" :value="f.v">{{ f.l }}</option>
-          </select>
-        </div>
-
-        <!-- Nome -->
-        <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nome do Servidor</label>
-          <div class="relative group">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
-            <input
-              v-model="filters.nome"
-              type="text"
-              placeholder="Ex: FRANCISCO..."
-              class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-medium"
-              @keyup.enter="applySearch"
-            />
-          </div>
-        </div>
-
-        <!-- Cargo -->
-        <div v-if="isLoadingFilters" class="space-y-1">
-          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Cargo</label>
-          <BaseSkeleton height="42px" rounded="rounded-xl" />
-        </div>
-        <BaseSelectSearch
-          v-else
-          v-model="filters.cargo"
-          :options="distinctFilters?.cargos || []"
-          label="Cargo"
-          placeholder="Selecione o cargo..."
-          @change="applySearch"
-        />
-
-        <!-- Órgão -->
-        <div v-if="isLoadingFilters" class="space-y-1">
-          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Órgão</label>
-          <BaseSkeleton height="42px" rounded="rounded-xl" />
-        </div>
-        <BaseSelectSearch
-          v-else
-          v-model="filters.orgao"
-          :options="distinctFilters?.orgaos || []"
-          label="Órgão"
-          placeholder="Selecione o órgão..."
-          @change="applySearch"
-        />
-
-        <!-- Ano -->
-        <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Ano</label>
-          <select
-            v-model="filters.ano"
-            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-medium appearance-none cursor-pointer"
-            @change="applySearch"
-          >
-            <option v-for="ano in anos" :key="ano" :value="ano">{{ ano }}</option>
-          </select>
-        </div>
-
-        <!-- Mes -->
-        <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Mês</label>
-          <select
-            v-model="filters.mes"
-            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-medium appearance-none cursor-pointer"
-            @change="applySearch"
-          >
-            <option v-for="m in meses" :key="m.v" :value="m.v">{{ m.l }}</option>
-          </select>
-        </div>
-
-        <!-- Ação -->
-        <div class="flex items-end">
-          <BaseButton :loading="isFetching" class="w-full h-[42px] gap-2 rounded-xl bg-slate-900 border-none shadow-lg shadow-slate-900/20" @click="applySearch">
-            <Search class="w-4 h-4" />
-            Aplicar Filtros
-          </BaseButton>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabela -->
-    <BaseTable :headers="tableHeaders" :items="data?.items || []" :is-loading="isInitialLoading && !data">
-      <template #cell-nome_servidor="{ item }">
-        <RouterLink
-          :to="{
-            name: 'remuneration-detail',
-            params: { id: item.id },
-            query: {
-              nome: item.nome_servidor,
-              cpf: item.cpf_servidor,
-              ano: item.ano_exercicio,
-              mes: item.mes_referencia,
-              fonte: item.fonte,
-            },
-          }"
-          class="font-bold text-slate-900 hover:text-slate-600 hover:underline decoration-slate-300 underline-offset-4"
-        >
-          {{ item.nome_servidor }}
-        </RouterLink>
-      </template>
-
-      <template #cell-referencia="{ item }">
-        <span class="font-mono text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">
-          {{ formatCompetence(item.mes_referencia, item.ano_exercicio) }}
-        </span>
-      </template>
-
-      <template #cell-orgao="{ item }">
-        <span class="truncate max-w-[200px] inline-block" :title="item.nome_orgao || undefined">
-          {{ item.nome_orgao }}
-        </span>
-      </template>
-
-      <template #cell-valor_bruto="{ item }">
-        <span class="font-bold text-slate-900">{{ formatCurrency(item.valor_bruto) }}</span>
-      </template>
-
-      <template #cell-valor_liquido="{ item }">
-        <span class="text-slate-900 font-black">{{ formatCurrency(item.valor_liquido) }}</span>
-      </template>
-    </BaseTable>
-
-    <!-- Paginação -->
-    <div v-if="data && data.pages > 1" class="flex items-center justify-between pt-4">
-      <p class="text-sm text-slate-500">
-        Mostrando <span class="font-bold text-slate-900">{{ data.items.length }}</span> de
-        <span class="font-bold text-slate-900">{{ data.total }}</span> registros
+  <div class="space-y-6 pb-10">
+    <div class="flex flex-col gap-1">
+      <h2 class="text-3xl font-bold text-slate-900 font-serif tracking-tight">Consulta Pública</h2>
+      <p class="text-slate-500 font-medium">
+        Encontre servidores no Governo do DF, Senado e Executivo Federal. Os resultados aparecem enquanto você digita.
       </p>
+    </div>
 
-      <div class="flex gap-2">
-        <BaseButton
-          variant="outline"
-          size="sm"
-          :disabled="filters.page === 1"
-          @click="setPage(filters.page! - 1)"
+    <div class="space-y-3">
+      <SearchBox
+        v-model="nomeRef"
+        :suggestions="suggestions"
+        :loading="suggestLoading || search.isFetching.value"
+        @select="pickSuggestion"
+        @submit="search.flushNome"
+      />
+
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <SearchTabs
+          :model-value="state.fonte"
+          :counts="counts"
+          :loading="search.isFetching.value"
+          @update:model-value="search.setFonte"
+        />
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors"
+          :class="showFilters ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'"
+          :aria-expanded="showFilters"
+          @click="showFilters = !showFilters"
         >
-          <ChevronLeft class="w-4 h-4 mr-1" /> Anterior
-        </BaseButton>
-        <div class="flex items-center px-4 text-sm font-bold text-slate-700 select-none">
-          Página {{ filters.page }} de {{ data.pages }}
-        </div>
-        <BaseButton
-          variant="outline"
-          size="sm"
-          :disabled="filters.page === data.pages"
-          @click="setPage(filters.page! + 1)"
-        >
-          Próximo <ChevronRight class="w-4 h-4 ml-1" />
-        </BaseButton>
+          <SlidersHorizontal class="w-4 h-4" />
+          Filtros
+          <span v-if="search.chips.value.length" class="text-[11px] font-black bg-slate-900 text-white rounded-full px-1.5">
+            {{ search.chips.value.length }}
+          </span>
+        </button>
       </div>
+
+      <SearchFilters
+        v-if="showFilters"
+        :state="state"
+        :periods="search.periods.value"
+        @update:cargo="state.cargo = $event"
+        @update:orgao="state.orgao = $event"
+        @update:ano="state.ano = $event"
+        @update:mes="state.mes = $event"
+      />
+
+      <div v-if="filtersActive" class="flex flex-wrap items-center gap-2">
+        <span
+          v-for="chip in search.chips.value"
+          :key="chip.key"
+          class="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold"
+        >
+          <span class="text-slate-400">{{ chip.label }}:</span> {{ chip.value }}
+          <button
+            type="button"
+            class="p-0.5 rounded-full hover:bg-white/20"
+            :aria-label="`Remover filtro ${chip.label}`"
+            @click="search.clearFilter(chip.key)"
+          >
+            <X class="w-3 h-3" />
+          </button>
+        </span>
+        <button type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-900 underline" @click="search.clearAll">
+          Limpar tudo
+        </button>
+      </div>
+    </div>
+
+    <!-- Estado inicial / dicas -->
+    <div
+      v-if="!search.criteria.value"
+      class="bg-white border border-dashed border-slate-300 rounded-3xl p-8 md:p-12 text-center space-y-4"
+    >
+      <div class="mx-auto w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500">
+        <Lightbulb class="w-6 h-6" />
+      </div>
+      <h3 class="text-xl font-bold font-serif text-slate-900">Comece digitando um nome</h3>
+      <ul class="text-sm text-slate-500 space-y-1">
+        <li>Digite ao menos 2 letras do nome — acentos e maiúsculas não importam.</li>
+        <li>Use <kbd class="font-mono border border-slate-200 rounded px-1 bg-slate-50">/</kbd> para focar a busca de qualquer lugar.</li>
+        <li>Abra "Filtros" para buscar só por cargo ou órgão.</li>
+      </ul>
+      <div class="flex flex-wrap justify-center gap-2 pt-2">
+        <button
+          v-for="e in examples"
+          :key="e"
+          type="button"
+          class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+          @click="tryExample(e)"
+        >
+          {{ e }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Carregando (primeira busca) -->
+    <div v-else-if="search.isInitialLoading.value" class="space-y-3" aria-busy="true">
+      <BaseSkeleton v-for="i in 6" :key="i" height="64px" rounded="rounded-2xl" />
+    </div>
+
+    <!-- Erro -->
+    <div v-else-if="search.isError.value" class="bg-red-50 border border-red-100 text-red-700 rounded-2xl p-6 text-center">
+      <p class="font-bold">Não foi possível buscar agora.</p>
+      <p class="text-sm">Tente novamente em instantes.</p>
+    </div>
+
+    <!-- Sem resultados -->
+    <div v-else-if="noResults" class="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-2">
+      <SearchX class="w-8 h-8 mx-auto text-slate-300" />
+      <h3 class="text-lg font-bold text-slate-900">Nenhum servidor encontrado</h3>
+      <p class="text-sm text-slate-500">
+        Tente menos letras, remova filtros ou escolha outra fonte. Pode não haver dados carregados no período.
+      </p>
+    </div>
+
+    <!-- Todas: seções agrupadas -->
+    <div v-else-if="state.fonte === 'ALL'" class="space-y-8" :class="{ 'opacity-70 transition-opacity': search.isFetching.value }">
+      <section v-for="f in FONTES" :key="f" class="space-y-3">
+        <template v-if="sources[f].data.value && sources[f].data.value!.items.length">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h3 class="text-xl font-bold font-serif text-slate-900">{{ FONTE_LABEL[f] }}</h3>
+              <FonteBadge :fonte="f" short />
+              <span class="text-sm text-slate-500">
+                {{ formatTotal(sources[f].data.value!.total, sources[f].data.value!.total_capped) }} resultados
+              </span>
+            </div>
+            <button
+              v-if="sources[f].data.value!.total > PREVIEW_SIZE"
+              type="button"
+              class="text-sm font-semibold text-slate-700 hover:text-slate-900 underline underline-offset-4"
+              @click="seeAll(f)"
+            >
+              Ver todos
+            </button>
+          </div>
+          <ResultList :items="sources[f].data.value!.items.slice(0, PREVIEW_SIZE)" :term="term" />
+        </template>
+        <BaseSkeleton v-else-if="sources[f].isFetching.value" height="56px" rounded="rounded-2xl" />
+      </section>
+    </div>
+
+    <!-- Fonte específica -->
+    <div v-else-if="search.activeData.value" class="space-y-4" :class="{ 'opacity-70 transition-opacity': search.isFetching.value }">
+      <ResultList :items="search.activeData.value.items" :term="term" />
+      <PaginationBar
+        :page="state.page"
+        :pages="search.activeData.value.pages"
+        :total="search.activeData.value.total"
+        :capped="search.activeData.value.total_capped"
+        :shown="search.activeData.value.items.length"
+        @change="search.setPage"
+      />
     </div>
   </div>
 </template>

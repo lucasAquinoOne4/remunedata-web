@@ -1,85 +1,193 @@
-import { ref, watch } from 'vue'
-import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
+import { computed, reactive, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { RemunerationService, type SearchFilters } from '../services/remuneration.service'
+import { FONTES, type Fonte, type RemunerationSearchResponse } from '@/core/types/api'
+import { useDebouncedRef } from '@/shared/composables/useDebouncedRef'
+import { RemunerationService } from '../services/remuneration.service'
+import { usePeriods } from './usePeriods'
+import {
+  PAGE_SIZE,
+  PREVIEW_SIZE,
+  buildSearchParams,
+  defaultState,
+  hasCriteria,
+  stateFromQuery,
+  stateToQuery,
+  type FonteTab,
+  type SearchState,
+} from '../utils/search'
+
+export const SEARCH_DEBOUNCE_MS = 250
+export const SEARCH_STALE_MS = 1000 * 60 * 5
+
+export type FilterKey = 'cargo' | 'orgao' | 'periodo'
+
+export interface FilterChip {
+  key: FilterKey
+  label: string
+  value: string
+}
 
 export function useRemunerationSearch() {
   const route = useRoute()
   const router = useRouter()
 
-  const appliedFilters = ref<SearchFilters>({
-    fonte: route.query.fonte === 'SENADO' ? 'SENADO' : 'DF',
-    nome: (route.query.nome as string) || '',
-    cpf: (route.query.cpf as string) || '',
-    ano: route.query.ano ? Number(route.query.ano) : 2025,
-    mes: (route.query.mes as string) || '01',
-    cargo: (route.query.cargo as string) || '',
-    orgao: (route.query.orgao as string) || '',
-    page: route.query.page ? Number(route.query.page) : 1,
-    size: route.query.size ? Number(route.query.size) : 25,
-  })
+  const state = reactive<SearchState>({ ...defaultState(), ...stateFromQuery(route.query) })
 
-  // Filtros locais para Edição (Vinculados aos inputs)
-  const localFilters = ref<SearchFilters>({ ...appliedFilters.value })
+  const nomeRef = computed({ get: () => state.nome, set: (v: string) => (state.nome = v) })
+  const cargoRef = computed({ get: () => state.cargo, set: (v: string) => (state.cargo = v) })
+  const orgaoRef = computed({ get: () => state.orgao, set: (v: string) => (state.orgao = v) })
+  const { debounced: nome, flush: flushNome } = useDebouncedRef(nomeRef, SEARCH_DEBOUNCE_MS)
+  const { debounced: cargo } = useDebouncedRef(cargoRef, SEARCH_DEBOUNCE_MS)
+  const { debounced: orgao } = useDebouncedRef(orgaoRef, SEARCH_DEBOUNCE_MS)
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['remuneration', 'search', appliedFilters],
-    queryFn: () => RemunerationService.search(appliedFilters.value),
-    staleTime: 1000 * 60 * 5, // 5 minutos de cache para navegação
-    placeholderData: (previousData) => previousData,
-  })
+  /** Estado efetivo: textos já com debounce; é ele que dispara requisições e a URL. */
+  const effective = computed<SearchState>(() => ({
+    ...state,
+    nome: nome.value,
+    cargo: cargo.value,
+    orgao: orgao.value,
+  }))
 
-  // Sincroniza filtros ATIVOS com a URL
-  watch(
-    appliedFilters,
-    (newFilters) => {
-      const query = { ...newFilters } as LocationQueryRaw
-      // Remover campos vazios da URL
-      Object.keys(query).forEach((key) => {
-        if (!query[key]) delete query[key]
+  const periodsQuery = usePeriods()
+  const periods = computed(() => periodsQuery.data.value)
+  const periodsReady = computed(() => periodsQuery.isFetched.value)
+
+  const criteria = computed(() => hasCriteria(effective.value))
+
+  function sourceQuery(fonte: Fonte) {
+    const params = computed(() => {
+      const isActive = state.fonte === fonte
+      const size = state.fonte === 'ALL' ? PREVIEW_SIZE : isActive ? PAGE_SIZE : 1
+      return buildSearchParams({
+        fonte,
+        state: effective.value,
+        periods: periods.value,
+        page: isActive ? state.page : 1,
+        size,
       })
+    })
+    return useQuery({
+      queryKey: ['remuneration', 'search', params],
+      queryFn: ({ signal }) => RemunerationService.search(params.value, signal),
+      enabled: computed(() => criteria.value && periodsReady.value),
+      staleTime: SEARCH_STALE_MS,
+      placeholderData: (previous: RemunerationSearchResponse | undefined) => previous,
+    })
+  }
 
-      router.push({ query })
-    },
-    { deep: true },
+  const sources = {
+    DF: sourceQuery('DF'),
+    SENADO: sourceQuery('SENADO'),
+    FEDERAL: sourceQuery('FEDERAL'),
+  } as const
+
+  const counts = computed(() =>
+    Object.fromEntries(
+      FONTES.map((f) => {
+        const d = criteria.value ? sources[f].data.value : undefined
+        return [f, d ? { total: d.total, capped: d.total_capped } : null]
+      }),
+    ) as Record<Fonte, { total: number; capped: boolean } | null>,
   )
 
-  const applySearch = () => {
-    appliedFilters.value = { 
-      ...localFilters.value,
-      page: 1 // Reinicia a página ao pesquisar
+  const activeSource = computed(() => (state.fonte === 'ALL' ? null : sources[state.fonte]))
+  const activeData = computed(() => (criteria.value ? activeSource.value?.data.value : undefined))
+
+  const isFetching = computed(() =>
+    state.fonte === 'ALL'
+      ? FONTES.some((f) => sources[f].isFetching.value)
+      : Boolean(activeSource.value?.isFetching.value),
+  )
+  const isInitialLoading = computed(() => {
+    if (!criteria.value) return false
+    if (!periodsReady.value) return true
+    return state.fonte === 'ALL'
+      ? FONTES.every((f) => !sources[f].data.value && sources[f].isFetching.value)
+      : !activeData.value && Boolean(activeSource.value?.isFetching.value)
+  })
+  const isError = computed(() =>
+    state.fonte === 'ALL'
+      ? FONTES.every((f) => sources[f].isError.value)
+      : Boolean(activeSource.value?.isError.value),
+  )
+
+  // Qualquer mudança de filtro volta para a página 1
+  watch([nome, cargo, orgao, () => state.ano, () => state.mes], () => {
+    state.page = 1
+  })
+
+  // URL compartilhável (só quando a query realmente muda)
+  const urlQuery = computed(() => stateToQuery(effective.value))
+  watch(
+    () => JSON.stringify(urlQuery.value),
+    () => {
+      if (route.name !== 'remuneration') return
+      router.replace({ query: urlQuery.value })
+    },
+  )
+
+  const chips = computed<FilterChip[]>(() => {
+    const out: FilterChip[] = []
+    if (state.cargo.trim()) out.push({ key: 'cargo', label: 'Cargo', value: state.cargo.trim() })
+    if (state.orgao.trim()) out.push({ key: 'orgao', label: 'Órgão', value: state.orgao.trim() })
+    if (state.fonte !== 'ALL' && state.ano) {
+      out.push({
+        key: 'periodo',
+        label: 'Período',
+        value: state.mes ? `${state.mes}/${state.ano}` : String(state.ano),
+      })
     }
+    return out
+  })
+
+  function setFonte(fonte: FonteTab) {
+    state.fonte = fonte
+    state.page = 1
+    // períodos são específicos de cada fonte
+    state.ano = null
+    state.mes = ''
   }
 
-  const setPage = (page: number) => {
-    appliedFilters.value.page = page
-    localFilters.value.page = page
+  function setPage(page: number) {
+    state.page = Math.max(1, page)
   }
 
-  const clearFilters = () => {
-    const defaults: SearchFilters = {
-      fonte: appliedFilters.value.fonte,
-      nome: '',
-      cpf: '',
-      cargo: '',
-      orgao: '',
-      ano: 2024,
-      mes: '01',
-      page: 1,
+  function clearFilter(key: FilterKey) {
+    if (key === 'cargo') state.cargo = ''
+    else if (key === 'orgao') state.orgao = ''
+    else {
+      state.ano = null
+      state.mes = ''
     }
-    localFilters.value = { ...defaults }
-    appliedFilters.value = { ...defaults }
+    // limpar chip aplica na hora (sem esperar debounce)
+    cargo.value = state.cargo
+    orgao.value = state.orgao
+  }
+
+  function clearAll() {
+    Object.assign(state, defaultState())
+    nome.value = ''
+    cargo.value = ''
+    orgao.value = ''
   }
 
   return {
-    filters: localFilters,
-    appliedFilters,
-    data,
-    isLoading,
+    state,
+    effective,
+    periods,
+    criteria,
+    sources,
+    counts,
+    activeData,
     isFetching,
+    isInitialLoading,
+    isError,
+    chips,
+    setFonte,
     setPage,
-    applySearch,
-    clearFilters,
-    refetch,
+    clearFilter,
+    clearAll,
+    flushNome,
   }
 }
