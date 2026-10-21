@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import httpClient from '@/core/http/client'
-import { RemunerationService } from './remuneration.service'
+import {
+  RemunerationService,
+  cleanParams,
+  normalizeSearch,
+  isMissingEndpoint,
+} from './remuneration.service'
 
 vi.mock('@/core/http/client', () => ({
   default: {
@@ -8,56 +13,77 @@ vi.mock('@/core/http/client', () => ({
   },
 }))
 
+const axiosError = (status: number) => ({ isAxiosError: true, response: { status } })
+
 describe('RemunerationService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('searches remunerations correctly', async () => {
-    const filters = { nome: 'Alice', page: 1 }
-    const mockData = { items: [], total: 0 }
-    vi.mocked(httpClient.get).mockResolvedValue({ data: mockData })
-
-    const result = await RemunerationService.search(filters)
-
-    expect(httpClient.get).toHaveBeenCalledWith('remuneration/', {
-      params: filters,
+  it('remove parâmetros vazios', () => {
+    expect(cleanParams({ nome: 'ana', cargo: '', ano: undefined, page: 1 })).toEqual({
+      nome: 'ana',
+      page: 1,
     })
-    expect(result).toEqual(mockData)
   })
 
-  it('fetches record by id', async () => {
-    const mockData = { id: 123, nome: 'Alice' }
-    vi.mocked(httpClient.get).mockResolvedValue({ data: mockData })
-
-    const result = await RemunerationService.getById(123)
-
-    expect(httpClient.get).toHaveBeenCalledWith('remuneration/123/')
-    expect(result).toEqual(mockData)
+  it('busca enviando apenas filtros preenchidos', async () => {
+    vi.mocked(httpClient.get).mockResolvedValue({
+      data: { items: [], total: 0, total_capped: false, page: 1, size: 25, pages: 0 },
+    })
+    const ac = new AbortController()
+    await RemunerationService.search({ fonte: 'DF', nome: 'Alice', cargo: '' }, ac.signal)
+    expect(httpClient.get).toHaveBeenCalledWith('remuneration/', {
+      params: { fonte: 'DF', nome: 'Alice' },
+      signal: ac.signal,
+    })
   })
 
-  it('fetches salary history by cpf', async () => {
-    const mockItems = [{ mes: '01/2025', valor_liquido: 5000 }]
-    const mockData = { items: mockItems }
-    vi.mocked(httpClient.get).mockResolvedValue({ data: mockData })
-
-    const result = await RemunerationService.getHistory('12345678901')
-
-    expect(httpClient.get).toHaveBeenCalledWith('remuneration/', {
-      params: { cpf: '12345678901', size: 100 },
-    })
-    expect(result).toEqual(mockItems)
+  it('normaliza resposta com campos ausentes', () => {
+    expect(normalizeSearch({ items: undefined })).toMatchObject({ items: [], total: 0, pages: 0 })
+    expect(normalizeSearch(undefined).total_capped).toBe(false)
   })
 
-  it('fetches record by attributes', async () => {
-    const mockRecord = { id: 1, nome: 'Alice' }
-    vi.mocked(httpClient.get).mockResolvedValue({ data: { items: [mockRecord] } })
+  it('retorna vazio quando a busca responde 501', async () => {
+    vi.mocked(httpClient.get).mockRejectedValue(axiosError(501))
+    const result = await RemunerationService.search({ nome: 'x' })
+    expect(result.items).toEqual([])
+  })
 
-    const result = await RemunerationService.getByAttributes({ nome: 'Alice' })
+  it('propaga erros diferentes de 404/501', async () => {
+    vi.mocked(httpClient.get).mockRejectedValue(axiosError(500))
+    await expect(RemunerationService.search({ nome: 'x' })).rejects.toBeTruthy()
+  })
 
-    expect(httpClient.get).toHaveBeenCalledWith('remuneration/', {
-      params: { nome: 'Alice', size: 1 },
+  it('sugestões: devolve lista e tolera 404', async () => {
+    vi.mocked(httpClient.get).mockResolvedValueOnce({
+      data: { suggestions: [{ nome: 'ANA', fonte: 'DF', cargo: null, orgao: null }] },
     })
-    expect(result).toEqual(mockRecord)
+    expect(await RemunerationService.suggest('ana')).toHaveLength(1)
+    vi.mocked(httpClient.get).mockRejectedValueOnce(axiosError(404))
+    expect(await RemunerationService.suggest('ana')).toEqual([])
+  })
+
+  it('períodos: tolera 404', async () => {
+    vi.mocked(httpClient.get).mockRejectedValueOnce(axiosError(404))
+    expect(await RemunerationService.periods()).toEqual({})
+  })
+
+  it('perfil: normaliza campos ausentes e devolve null em 404', async () => {
+    vi.mocked(httpClient.get).mockResolvedValueOnce({ data: { fonte: 'DF', id: '1' } })
+    const p = await RemunerationService.person('DF', '1', '99')
+    expect(httpClient.get).toHaveBeenCalledWith('remuneration/person', {
+      params: { fonte: 'DF', id: '1', matricula: '99' },
+      signal: undefined,
+    })
+    expect(p?.historico).toEqual([])
+    expect(p?.outras_fontes).toEqual([])
+    vi.mocked(httpClient.get).mockRejectedValueOnce(axiosError(404))
+    expect(await RemunerationService.person('DF', '1')).toBeNull()
+  })
+
+  it('isMissingEndpoint só reconhece erros axios 404/501', () => {
+    expect(isMissingEndpoint(new Error('x'))).toBe(false)
+    expect(isMissingEndpoint(axiosError(404))).toBe(true)
   })
 })
