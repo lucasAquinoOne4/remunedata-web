@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  Database
 } from 'lucide-vue-next'
 import { ENV } from '@/core/config/env'
 import { useAuthStore } from '@/core/auth/authStore'
@@ -32,6 +33,11 @@ const menuItems = [
     name: 'Usuários', 
     path: `/${ENV.ADMIN_PATH}/users`, 
     icon: Users 
+  },
+  { 
+    name: 'Carga de dados', 
+    path: `/${ENV.ADMIN_PATH}/loads`, 
+    icon: Database 
   },
   { 
     name: 'Suporte', 

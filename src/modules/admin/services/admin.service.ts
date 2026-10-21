@@ -1,5 +1,6 @@
 import httpClient from '@/core/http/client'
 import { ENV } from '@/core/config/env'
+import type { Fonte, LoadsResponse, TriggerLoadResponse } from '@/core/types/api'
 
 export interface AdminStats {
   total_revenue: number
@@ -65,6 +66,21 @@ export const AdminService = {
   async reply(userId: string, content: string): Promise<SupportMessage> {
     const { data } = await httpClient.post(`${prefix}/support/${userId}/reply`, {
       content
+    })
+    return data
+  },
+
+  async getLoads(): Promise<LoadsResponse> {
+    const { data } = await httpClient.get<Partial<LoadsResponse>>(`${prefix}/loads`)
+    return {
+      fontes: Array.isArray(data?.fontes) ? data.fontes : [],
+      coleta_df: Array.isArray(data?.coleta_df) ? data.coleta_df : [],
+    }
+  },
+
+  async triggerLoad(fonte: Fonte, ano: number, mes: string): Promise<TriggerLoadResponse> {
+    const { data } = await httpClient.post<TriggerLoadResponse>(`${prefix}/loads/${fonte}`, null, {
+      params: { ano, mes },
     })
     return data
   }
