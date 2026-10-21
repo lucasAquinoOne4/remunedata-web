@@ -105,8 +105,8 @@ const handleSync = async () => {
   <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
       <div>
-        <h2 class="text-3xl font-bold text-slate-900 font-serif">Execuções</h2>
-        <p class="text-slate-500">Log de auditoria das sincronizações de dados processados.</p>
+        <h2 class="text-2xl font-bold text-slate-900 font-serif">Progresso mensal do DF</h2>
+        <p class="text-slate-500">Log de auditoria das sincronizações do Governo do DF, com status por mês.</p>
       </div>
       <BaseButton :loading="isSyncing" @click="handleSync">
         <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': isSyncing }" />

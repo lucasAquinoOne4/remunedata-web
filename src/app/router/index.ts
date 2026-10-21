@@ -31,24 +31,30 @@ const router = createRouter({
           },
         },
         {
-          path: '/remuneration/:id',
-          name: 'remuneration-detail',
-          component: () => import('@/modules/remuneration/views/RemunerationDetailView.vue'),
-          meta: { 
-            requiresAuth: true, 
+          path: '/pessoa/:fonte/:id',
+          name: 'person',
+          component: () => import('@/modules/remuneration/views/PersonProfileView.vue'),
+          meta: {
+            requiresAuth: true,
             requiresSubscription: true,
-            feature: 'Detalhes da Remuneração'
+            feature: 'Perfil do Servidor'
           },
         },
         {
+          // Link antigo (id numérico não mapeia para o novo perfil): leva à busca pelo nome
+          path: '/remuneration/:id',
+          name: 'remuneration-detail',
+          redirect: (to) => {
+            const nome = typeof to.query.nome === 'string' ? to.query.nome : ''
+            const fonte = typeof to.query.fonte === 'string' ? to.query.fonte : ''
+            return { name: 'remuneration', params: {}, query: { ...(nome && { nome }), ...(fonte && { fonte }) } }
+          },
+        },
+        {
+          // Execuções agora vivem na área admin (Carga de dados)
           path: '/executions',
           name: 'executions',
-          component: () => import('@/modules/executions/views/ExecutionsView.vue'),
-          meta: { 
-            requiresAuth: true, 
-            requiresSubscription: true,
-            feature: 'Nitro Engine'
-          },
+          redirect: `/${ENV.ADMIN_PATH}/loads`,
         },
         {
           path: '/subscriptions/plans',
@@ -102,6 +108,12 @@ const router = createRouter({
           meta: { requiresAuth: true, isAdmin: true },
         },
         {
+          path: 'loads',
+          name: 'admin-loads',
+          component: () => import('@/modules/admin/views/AdminLoadsView.vue'),
+          meta: { requiresAuth: true, isAdmin: true },
+        },
+        {
           path: 'support',
           name: 'admin-support',
           component: () => import('@/modules/admin/views/AdminSupportView.vue'),
@@ -147,6 +159,11 @@ router.beforeEach(async (to, _from, next) => {
     // Garante que o status da assinatura esteja carregado ou forçado via query de sucesso
     if (!subStore.status || to.query.success === 'true') {
       await subStore.fetchStatus()
+    }
+
+    // Rotas administrativas: somente admin (o backend também valida)
+    if (to.meta.isAdmin && !subStore.isAdmin) {
+      return next({ name: 'dashboard' })
     }
 
     // Se a rota exige assinatura ativa e o usuário logado não tem plano (ou não é admin)

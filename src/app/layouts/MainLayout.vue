@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { LayoutDashboard, Search, Database, Menu, X, LogOut, User, Crown, Zap, Lock } from 'lucide-vue-next'
+import { ENV } from '@/core/config/env'
 import { useAuthStore } from '@/core/auth/authStore'
 import { useSubscriptionStore } from '@/modules/subscriptions/store/subscriptionStore'
 
@@ -64,6 +65,7 @@ const handleLogout = async () => {
         <RouterLink
           to="/remuneration"
           class="flex items-center justify-between px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 transition-all duration-200 group relative"
+          :class="route.path.startsWith('/pessoa/') ? 'bg-slate-900! text-white! font-semibold shadow-lg shadow-slate-900/10' : ''"
           active-class="bg-slate-900! text-white! font-semibold shadow-lg shadow-slate-900/10"
         >
           <div class="flex items-center gap-3">
@@ -72,16 +74,15 @@ const handleLogout = async () => {
           </div>
           <Lock v-if="!subStore.isPremium" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-900 transition-colors" />
         </RouterLink>
+        <!-- Carga de dados: visível somente para administradores -->
         <RouterLink
-          to="/executions"
-          class="flex items-center justify-between px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 transition-all duration-200 group relative"
+          v-if="subStore.isAdmin"
+          :to="`/${ENV.ADMIN_PATH}/loads`"
+          class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 transition-all duration-200 group"
           active-class="bg-slate-900! text-white! font-semibold shadow-lg shadow-slate-900/10"
         >
-          <div class="flex items-center gap-3">
-            <Database class="w-5 h-5 group-hover:scale-110 transition-transform" />
-            Execuções
-          </div>
-          <Lock v-if="!subStore.isPremium" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+          <Database class="w-5 h-5 group-hover:scale-110 transition-transform" />
+          Carga de dados
         </RouterLink>
 
         <!-- Premium Upsell / Status in Sidebar -->
@@ -147,7 +148,7 @@ const handleLogout = async () => {
             <Menu class="w-6 h-6" />
           </button>
           <div class="hidden sm:block text-xs text-slate-400 font-semibold uppercase tracking-wider">
-            DF / Portal da Transparência
+            Portal da Transparência · DF, Senado e Federal
           </div>
         </div>
 
