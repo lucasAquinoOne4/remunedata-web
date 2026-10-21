@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Users, TrendingUp, Wallet, RefreshCw, Zap, ArrowRight } from 'lucide-vue-next'
-import { useDashboardSummary } from '../composables/useDashboardSummary'
+import { computed, ref, watch } from 'vue'
+import { Users, TrendingUp, Wallet, RefreshCw, Zap, ArrowRight, BarChart3 } from 'lucide-vue-next'
+import { FONTES, FONTE_LABEL, type Fonte } from '@/core/types/api'
+import { useStats } from '../composables/useStats'
+import { buildFaixasOption, buildMonthlyOption, buildTopOrgaosOption } from '../utils/statsCharts'
+import { usePeriods } from '@/modules/remuneration/composables/usePeriods'
+import { yearsFor } from '@/modules/remuneration/utils/search'
 import { formatCurrency } from '@/core/formatters/currency'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 import BaseChart from '@/shared/ui/BaseChart.vue'
@@ -10,103 +14,71 @@ import BaseButton from '@/shared/ui/BaseButton.vue'
 import { useSubscriptionStore } from '@/modules/subscriptions/store/subscriptionStore'
 
 const subStore = useSubscriptionStore()
-const { data, isLoading, isFetching, isError, error } = useDashboardSummary()
 
-const chartOptions = computed(() => {
-  if (!data.value) return {}
+const fonte = ref<Fonte>('DF')
+const chosenAno = ref<number | null>(null)
 
-  const categories = data.value.top_orgaos.map((o) => {
-    let name = o.nome_orgao.trim().replace(/^SECRETARIA DE (ESTADO DE )?/i, '').trim()
-    if (name.length > 20) name = name.substring(0, 18) + '...'
-    return name
-  })
-  
-  const values = data.value.top_orgaos.map((o) => {
-    const item = o as unknown as Record<string, unknown>
-    return (item.count as number) || o.total_servidores || (o.media_salarial as number) || 0
-  })
+const periodsQuery = usePeriods()
+const years = computed(() => yearsFor(periodsQuery.data.value, fonte.value))
+// ano efetivo: o escolhido ou o mais recente carregado para a fonte
+const ano = computed<number | null>(() => chosenAno.value ?? years.value[0] ?? null)
 
-  return {
-    tooltip: { 
-      trigger: 'axis',
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      borderWidth: 0,
-      textStyle: { color: '#1e293b' },
-      shadowBlur: 15,
-      shadowColor: 'rgba(0,0,0,0.1)',
-      formatter: (params: unknown) => {
-        const p = (params as { name: string; value: number }[])[0]
-        return `
-          <div class="px-3 py-1">
-            <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">${p.name}</div>
-            <div class="text-sm font-bold text-slate-900">${p.value.toLocaleString('pt-BR')} servidores</div>
-          </div>
-        `
-      }
-    },
-    grid: { left: '3%', right: '10%', bottom: '3%', top: '5%', containLabel: true },
-    xAxis: { 
-      type: 'value', 
-      axisLabel: { show: false },
-      splitLine: { show: false }
-    },
-    yAxis: { 
-      type: 'category', 
-      data: categories, 
-      inverse: true,
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: { fontWeight: '600', color: '#64748b' }
-    },
-    series: [
-      {
-        name: 'Servidores',
-        type: 'bar',
-        data: values,
-        barWidth: 18,
-        showBackground: true,
-        backgroundStyle: { color: '#f8fafc', borderRadius: 10 },
-        itemStyle: {
-          borderRadius: 10,
-          color: {
-            type: 'linear', x: 0, y: 0, x2: 1, y2: 0,
-            colorStops: [
-              { offset: 0, color: '#0f172a' },
-              { offset: 1, color: '#334155' }
-            ]
-          }
-        },
-        label: {
-          show: true,
-          position: 'right',
-          fontWeight: 'bold',
-          formatter: (params: unknown) => (params as { value: number }).value.toLocaleString('pt-BR'),
-        },
-      },
-    ],
-  }
+watch(fonte, () => {
+  chosenAno.value = null
 })
+
+const ready = computed(() => periodsQuery.isFetched.value)
+const { data, isLoading, isFetching, isError } = useStats(fonte, ano, ready)
+
+const loading = computed(() => isLoading.value || !ready.value)
+const hasData = computed(() => (data.value?.total_servidores ?? 0) > 0 || (data.value?.mensal.length ?? 0) > 0)
+
+const monthlyOption = computed(() => buildMonthlyOption(data.value?.mensal ?? []))
+const orgaosOption = computed(() => buildTopOrgaosOption((data.value?.top_orgaos ?? []).slice(0, 10)))
+const faixasOption = computed(() => buildFaixasOption(data.value?.faixas ?? []))
+const orgaosHeight = computed(() => Math.max(220, Math.min(10, data.value?.top_orgaos.length ?? 0) * 36 + 16))
+
+const charts = computed(() => [
+  { key: 'mensal', title: 'Evolução mensal', subtitle: 'Total bruto (barras) e média bruta (linha)', option: monthlyOption.value, show: (data.value?.mensal.length ?? 0) > 0, height: '320px', span: 'xl:col-span-2' },
+  { key: 'orgaos', title: 'Top órgãos', subtitle: 'Maior contingente de registros', option: orgaosOption.value, show: (data.value?.top_orgaos.length ?? 0) > 0, height: `${orgaosHeight.value}px`, span: '' },
+  { key: 'faixas', title: 'Faixas salariais', subtitle: 'Distribuição de registros por faixa de remuneração bruta', option: faixasOption.value, show: (data.value?.faixas.length ?? 0) > 0, height: '300px', span: '' },
+])
 </script>
 
 <template>
   <div class="space-y-8 pb-10">
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
       <div class="flex flex-col gap-1">
         <h2 class="text-4xl font-bold text-slate-900 font-serif tracking-tight">Visão Geral</h2>
-        <p class="text-slate-500 font-medium">
-          Dashboard consolidado de remunerações do Distrito Federal.
-        </p>
+        <p class="text-slate-500 font-medium">Panorama das remunerações por fonte e ano.</p>
       </div>
-      <div v-if="data" class="flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-2xl shadow-sm">
-        <div class="relative flex h-2 w-2">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-slate-900"></span>
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex gap-1 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm" role="tablist" aria-label="Fonte">
+          <button
+            v-for="f in FONTES"
+            :key="f"
+            type="button"
+            role="tab"
+            :aria-selected="fonte === f"
+            class="px-3 py-1.5 rounded-xl text-sm font-semibold transition-all"
+            :class="fonte === f ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:bg-slate-50'"
+            @click="fonte = f"
+          >
+            {{ FONTE_LABEL[f] }}
+          </button>
         </div>
-        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-          Monitorando em Tempo Real
-          <RefreshCw v-if="isFetching" class="w-3 h-3 animate-spin text-slate-900" />
-        </span>
+        <select
+          :value="ano ?? ''"
+          :disabled="years.length === 0"
+          aria-label="Ano"
+          class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-slate-900/5 disabled:opacity-50"
+          @change="chosenAno = Number(($event.target as HTMLSelectElement).value) || null"
+        >
+          <option v-if="years.length === 0" value="">Ano</option>
+          <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+        </select>
+        <RefreshCw v-if="isFetching && !isLoading" class="w-4 h-4 animate-spin text-slate-400" />
       </div>
     </div>
 
@@ -148,63 +120,61 @@ const chartOptions = computed(() => {
     <!-- KPI Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <BaseCard title="Total de Servidores" :icon="Users">
-        <template #default>
-          <BaseSkeleton v-if="isLoading" height="32px" width="60%" class="mt-1" />
-          <p v-else class="text-3xl font-bold text-slate-900 mt-1">
-            {{ data?.total_servidores.toLocaleString('pt-BR') || '0' }}
-          </p>
-        </template>
+        <BaseSkeleton v-if="loading" height="32px" width="60%" class="mt-1" />
+        <p v-else class="text-3xl font-bold text-slate-900 mt-1">
+          {{ (data?.total_servidores ?? 0).toLocaleString('pt-BR') }}
+        </p>
         <template #footer>
-          <p class="text-xs text-slate-500">Média baseada no período de {{ data?.ano_referencia }}</p>
+          <p class="text-xs text-slate-500">{{ FONTE_LABEL[fonte] }}<template v-if="ano"> · {{ ano }}</template></p>
         </template>
       </BaseCard>
 
       <BaseCard title="Média Salarial" :icon="TrendingUp">
-        <template #default>
-          <BaseSkeleton v-if="isLoading" height="32px" width="80%" class="mt-1" />
-          <p v-else class="text-3xl font-bold text-slate-900 mt-1">
-            {{ formatCurrency(data?.media_salarial || 0) }}
-          </p>
-        </template>
+        <BaseSkeleton v-if="loading" height="32px" width="80%" class="mt-1" />
+        <p v-else class="text-3xl font-bold text-slate-900 mt-1">{{ formatCurrency(data?.media_bruto ?? 0) }}</p>
         <template #footer>
-          <p class="text-xs text-slate-400 font-bold italic">Remuneração Bruta Estimada</p>
+          <p class="text-xs text-slate-400 font-bold italic">Remuneração bruta média</p>
         </template>
       </BaseCard>
 
       <BaseCard title="Gasto Total Bruto" :icon="Wallet">
-        <template #default>
-          <BaseSkeleton v-if="isLoading" height="32px" width="90%" class="mt-1" />
-          <p v-else class="text-3xl font-bold text-slate-900 mt-1">
-            {{ formatCurrency(data?.total_gasto_bruto || 0) }}
-          </p>
-        </template>
+        <BaseSkeleton v-if="loading" height="32px" width="90%" class="mt-1" />
+        <p v-else class="text-3xl font-bold text-slate-900 mt-1">{{ formatCurrency(data?.total_bruto ?? 0) }}</p>
         <template #footer>
-          <p class="text-xs text-slate-500">Impacto orçamentário identificado</p>
+          <p class="text-xs text-slate-500">Soma das remunerações brutas no período</p>
         </template>
       </BaseCard>
     </div>
 
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 gap-6">
-      <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
-        <div class="flex items-center justify-between mb-10">
-          <div>
-            <h3 class="text-2xl font-bold text-slate-900 font-serif">Engajamento por Órgão</h3>
-            <p class="text-sm text-slate-500 font-medium">Top 5 órgãos com maior contingente de pessoal</p>
-          </div>
+    <div v-if="isError && !data" class="py-16 text-center border-2 border-dashed border-slate-100 rounded-3xl">
+      <p class="text-red-500 font-bold">Falha ao carregar as estatísticas</p>
+      <p class="text-sm text-slate-400">Tente novamente em instantes.</p>
+    </div>
+    <div
+      v-else-if="!loading && !hasData"
+      class="py-16 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-white"
+    >
+      <BarChart3 class="w-8 h-8 mx-auto text-slate-300 mb-2" />
+      <p class="font-bold text-slate-700">Ainda não há estatísticas para esta fonte/ano.</p>
+      <p class="text-sm text-slate-400">Escolha outra fonte ou aguarde a próxima carga de dados.</p>
+    </div>
+
+    <!-- Gráficos: cada cartão carrega e falha de forma independente -->
+    <div v-else class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <section
+        v-for="c in charts"
+        :key="c.key"
+        class="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm"
+        :class="c.span"
+      >
+        <h3 class="text-2xl font-bold text-slate-900 font-serif">{{ c.title }}</h3>
+        <p class="text-sm text-slate-500 font-medium mb-6">{{ c.subtitle }}</p>
+        <div v-if="loading" class="space-y-3 py-4">
+          <BaseSkeleton v-for="i in 5" :key="i" height="24px" :width="`${100 - i * 12}%`" />
         </div>
-        
-        <div v-if="isLoading" class="space-y-4 py-10">
-          <BaseSkeleton v-for="i in 5" :key="i" height="30px" :width="`${100 - (i*10)}%`" />
-        </div>
-        <div v-else-if="data" class="h-[400px] w-full">
-          <BaseChart :option="chartOptions" height="100%" />
-        </div>
-        <div v-else-if="isError" class="py-20 text-center border-2 border-dashed border-slate-100 rounded-3xl">
-          <p class="text-red-500 font-bold">Falha na sincronização de dados</p>
-          <p class="text-sm text-slate-400">{{ (error as Error)?.message }}</p>
-        </div>
-      </div>
+        <BaseChart v-else-if="c.show" :option="c.option" :height="c.height" />
+        <p v-else class="py-10 text-center text-sm text-slate-400">Sem dados para este gráfico.</p>
+      </section>
     </div>
   </div>
 </template>
