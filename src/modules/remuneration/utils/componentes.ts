@@ -1,6 +1,27 @@
 import type { ComponentesMap, PersonHistoryEntry } from '@/core/types/api'
 
 const LABELS: Record<string, string> = {
+  // Senado
+  remuneracao_basica: 'Remuneração básica',
+  funcao_comissionada: 'Função comissionada',
+  horas_extras: 'Horas extras',
+  vantagens_indenizatorias: 'Vantagens indenizatórias',
+  imposto_renda: 'Imposto de renda',
+  previdencia: 'Previdência',
+  reversao_teto_constitucional: 'Reversão do teto constitucional',
+  // Federal
+  abate_teto_natalina: 'Abate-teto do 13º',
+  // Governo do DF
+  valor_comissao_conselheiro: 'Comissão de conselheiro',
+  valor_verbas_eventuais: 'Verbas eventuais',
+  valor_verbas_judiciais: 'Verbas judiciais',
+  valor_receitas_meses_anteriores: 'Receitas de meses anteriores',
+  valor_reposicao_descontos_maior: 'Reposição de descontos a maior',
+  valor_licenca_premio: 'Licença-prêmio',
+  valor_redutor_teto: 'Redutor do teto',
+  valor_descontos_meses_anteriores: 'Descontos de meses anteriores',
+  valor_reposicao_pagamento_maior: 'Reposição de pagamento a maior',
+  valor_expurgo: 'Expurgo',
   remuneracao_basica_bruta: 'Remuneração básica bruta',
   valor_remuneracao_basica: 'Remuneração básica',
   abate_teto: 'Abate-teto',
@@ -40,6 +61,9 @@ const DISCOUNT_HINTS = [
   'abate',
   'faltas',
   'redutor',
+  'reversao',
+  'expurgo',
+  'descontos',
 ]
 
 /** Rótulo em português da chave de componente (com fallback legível). */
