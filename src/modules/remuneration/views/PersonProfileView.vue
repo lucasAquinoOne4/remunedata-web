@@ -19,6 +19,7 @@ import OtherSources from '../components/OtherSources.vue'
 import FederalSheet from '../components/FederalSheet.vue'
 import HistoryTable from '../components/HistoryTable.vue'
 import TseCandidaturas from '../components/TseCandidaturas.vue'
+import ParticipacoesSocietarias from '../components/ParticipacoesSocietarias.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -162,6 +163,7 @@ function exportCsv() {
       />
 
       <TseCandidaturas :candidaturas="profile.candidaturas_tse ?? []" />
+      <ParticipacoesSocietarias :participacoes="profile.participacoes_societarias ?? []" />
 
       <OtherSources :matches="profile.outras_fontes" />
       <FederalSheet :ficha="profile.ficha_federal" />

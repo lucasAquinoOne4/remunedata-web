@@ -193,6 +193,26 @@ export interface TseCandidatura {
   motivo: string
 }
 
+export interface ParticipacaoSocietaria {
+  cnpj_basico: string
+  razao_social: string | null
+  nome_fantasia: string | null
+  situacao_cadastral: string | null
+  data_situacao: string | null
+  data_inicio_atividade: string | null
+  cnae_principal: string | null
+  cnae_descricao: string | null
+  uf: string | null
+  natureza_juridica: string | null
+  porte: string | null
+  capital_social: number | null
+  qualificacao: string | null
+  data_entrada: string | null
+  faixa_etaria: string | null
+  confianca: MatchConfidence
+  motivo: string
+}
+
 export interface PersonProfile {
   fonte: Fonte
   id: string
@@ -203,6 +223,7 @@ export interface PersonProfile {
   outras_fontes: OtherSourceMatch[]
   contexto_base?: ContextoBase | null
   candidaturas_tse?: TseCandidatura[]
+  participacoes_societarias?: ParticipacaoSocietaria[]
   ficha_federal: Record<string, unknown> | null
 }
 
