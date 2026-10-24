@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, FileDown, UserX } from 'lucide-vue-next'
 import { isFonte } from '../utils/search'
-import type { Fonte } from '@/core/types/api'
+import { semLiquido, type Fonte } from '@/core/types/api'
 import { formatCurrency } from '@/core/formatters/currency'
 import { formatCompetence } from '@/core/formatters/date'
 import BaseChart from '@/shared/ui/BaseChart.vue'
@@ -38,7 +38,7 @@ const { data: profile, isLoading, isError } = usePerson(fonte, id, matricula)
 const nome = computed(() => profile.value?.identidade?.nome || 'Servidor')
 const ultimo = computed(() => (profile.value ? latestEntry(profile.value) : null))
 const kpis = computed(() => computeKpis(ultimo.value))
-const evolutionOption = computed(() => buildEvolutionOption(profile.value?.historico ?? []))
+const evolutionOption = computed(() => buildEvolutionOption(profile.value?.historico ?? [], !semLiquido(fonte.value)))
 const compositionOption = computed(() => buildCompositionOption(ultimo.value?.componentes))
 const hasComponents = computed(() => Object.keys(ultimo.value?.componentes ?? {}).length > 0)
 const compositionHeight = computed(() => Math.max(180, Object.keys(ultimo.value?.componentes ?? {}).length * 34 + 24))
@@ -50,7 +50,7 @@ function goBack() {
 
 function exportCsv() {
   if (!profile.value) return
-  downloadCsv(csvFilename(nome.value, fonte.value), historyToCsv(profile.value.historico))
+  downloadCsv(csvFilename(nome.value, fonte.value), historyToCsv(profile.value.historico, fonte.value))
 }
 </script>
 
@@ -108,14 +108,20 @@ function exportCsv() {
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
           <p class="text-[10px] uppercase tracking-widest font-black text-slate-400">Líquido</p>
-          <p class="text-3xl font-bold text-slate-900 mt-1">{{ formatCurrency(kpis.liquido) }}</p>
+          <p class="text-3xl font-bold text-slate-900 mt-1">{{ semLiquido(fonte) ? 'Não informado' : formatCurrency(kpis.liquido) }}</p>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
           <p class="text-[10px] uppercase tracking-widest font-black text-slate-400">Descontos</p>
-          <p class="text-3xl font-bold text-rose-600 mt-1">
-            {{ kpis.descontosPct.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }}%
-          </p>
-          <p class="text-xs text-slate-500">{{ formatCurrency(kpis.descontos) }} no mês</p>
+          <template v-if="semLiquido(fonte)">
+            <p class="text-3xl font-bold text-slate-900 mt-1">Não informado</p>
+            <p class="text-xs text-slate-500">A fonte publica apenas o valor bruto.</p>
+          </template>
+          <template v-else>
+            <p class="text-3xl font-bold text-rose-600 mt-1">
+              {{ kpis.descontosPct.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }}%
+            </p>
+            <p class="text-xs text-slate-500">{{ formatCurrency(kpis.descontos) }} no mês</p>
+          </template>
         </div>
       </div>
       <p v-else class="text-sm text-slate-400 text-center">Sem valores de remuneração para este perfil.</p>
@@ -127,7 +133,9 @@ function exportCsv() {
           class="xl:col-span-3 bg-white rounded-3xl border border-slate-200 shadow-sm p-6"
         >
           <h3 class="text-xl font-bold font-serif text-slate-900 mb-1">Evolução</h3>
-          <p class="text-sm text-slate-500 mb-4">Remuneração bruta x líquida mês a mês.</p>
+          <p class="text-sm text-slate-500 mb-4">
+            {{ semLiquido(fonte) ? 'Remuneração bruta mês a mês.' : 'Remuneração bruta x líquida mês a mês.' }}
+          </p>
           <BaseChart :option="evolutionOption" height="320px" />
         </section>
         <section
@@ -150,6 +158,7 @@ function exportCsv() {
         v-if="profile.historico.length"
         :historico="profile.historico"
         :contexto-base="profile.contexto_base"
+        :fonte="fonte"
       />
 
       <TseCandidaturas :candidaturas="profile.candidaturas_tse ?? []" />

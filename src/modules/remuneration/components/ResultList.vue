@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RemunerationItem } from '@/core/types/api'
+import { semLiquido, type RemunerationItem } from '@/core/types/api'
 import { formatCurrency } from '@/core/formatters/currency'
 import { formatCompetence } from '@/core/formatters/date'
 import { personRoute } from '../utils/search'
@@ -54,7 +54,7 @@ defineProps<{
               {{ formatCurrency(item.valor_bruto) }}
             </td>
             <td class="px-5 py-3.5 text-right font-black text-slate-900 whitespace-nowrap">
-              {{ formatCurrency(item.valor_liquido) }}
+              {{ semLiquido(item.fonte) ? 'não informado' : formatCurrency(item.valor_liquido) }}
             </td>
           </tr>
         </tbody>
@@ -85,7 +85,7 @@ defineProps<{
               <p class="text-sm text-slate-900">
                 <span class="font-bold">{{ formatCurrency(item.valor_bruto) }}</span>
                 <span class="text-slate-300 mx-1">/</span>
-                <span class="font-black">{{ formatCurrency(item.valor_liquido) }}</span>
+                <span class="font-black">{{ semLiquido(item.fonte) ? 'não informado' : formatCurrency(item.valor_liquido) }}</span>
               </p>
             </div>
           </div>

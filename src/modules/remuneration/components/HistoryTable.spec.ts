@@ -89,3 +89,11 @@ describe('HistoryTable (contexto econômico)', () => {
     expect(w.find('[data-test="ctx-nota"]').exists()).toBe(false)
   })
 })
+
+describe('HistoryTable (fonte sem líquido)', () => {
+  it('mostra "não informado" em vez de R$ 0,00 para o SC', () => {
+    const w = mount(HistoryTable, { props: { historico: [{ ...mk(2026, '01', 2000), valor_liquido: 0 }], fonte: 'SC' } })
+    expect(w.text()).toContain('não informado')
+    expect(w.get('[data-test="resumo-ano"]').text()).not.toContain('total líquido')
+  })
+})

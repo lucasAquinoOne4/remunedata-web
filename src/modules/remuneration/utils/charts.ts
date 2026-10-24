@@ -20,7 +20,10 @@ const compactMoney = (v: number) =>
 export { compactMoney }
 
 /** Linha: evolução do bruto x líquido ao longo dos meses. */
-export function buildEvolutionOption(historico: PersonHistoryEntry[]): Record<string, unknown> {
+export function buildEvolutionOption(
+  historico: PersonHistoryEntry[],
+  comLiquido = true,
+): Record<string, unknown> {
   const labels = historico.map((h) => formatCompetence(h.mes, h.ano))
   return {
     tooltip: {
@@ -53,15 +56,19 @@ export function buildEvolutionOption(historico: PersonHistoryEntry[]): Record<st
         itemStyle: { color: '#0f172a' },
         areaStyle: { color: 'rgba(15,23,42,0.06)' },
       },
-      {
-        name: 'Líquido',
-        type: 'line',
-        smooth: true,
-        showSymbol: historico.length < 40,
-        data: historico.map((h) => h.valor_liquido),
-        lineStyle: { width: 3, color: '#0d9488' },
-        itemStyle: { color: '#0d9488' },
-      },
+      ...(comLiquido
+        ? [
+            {
+              name: 'Líquido',
+              type: 'line',
+              smooth: true,
+              showSymbol: historico.length < 40,
+              data: historico.map((h) => h.valor_liquido),
+              lineStyle: { width: 3, color: '#0d9488' },
+              itemStyle: { color: '#0d9488' },
+            },
+          ]
+        : []),
     ],
   }
 }

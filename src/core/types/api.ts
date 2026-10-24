@@ -10,6 +10,13 @@ export type Fonte = 'DF' | 'SENADO' | 'FEDERAL' | 'CE' | 'PE' | 'GO' | 'SC' | 'J
 
 export const FONTES: readonly Fonte[] = ['DF', 'SENADO', 'FEDERAL', 'CE', 'PE', 'GO', 'SC', 'JU'] as const
 
+/** Fontes que só publicam o valor bruto: líquido e descontos são "não informado", não zero. */
+export const FONTES_SEM_LIQUIDO: readonly Fonte[] = ['SC'] as const
+
+export function semLiquido(fonte: Fonte | string | null | undefined): boolean {
+  return (FONTES_SEM_LIQUIDO as readonly string[]).includes(String(fonte))
+}
+
 export const FONTE_LABEL: Record<Fonte, string> = {
   DF: 'Governo do DF',
   SENADO: 'Senado',

@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import type { ContextoBase, PersonHistoryEntry } from '@/core/types/api'
+import { semLiquido, type ContextoBase, type Fonte, type PersonHistoryEntry } from '@/core/types/api'
 import { formatCurrency } from '@/core/formatters/currency'
 import { formatCompetence } from '@/core/formatters/date'
 import { collectComponentKeys, componentLabel, isDiscount } from '../utils/componentes'
 
-const props = defineProps<{ historico: PersonHistoryEntry[]; contextoBase?: ContextoBase | null }>()
+const props = defineProps<{
+  historico: PersonHistoryEntry[]
+  contextoBase?: ContextoBase | null
+  fonte?: Fonte
+}>()
+const semLiq = computed(() => semLiquido(props.fonte))
 
 const ALL = 'todos'
 
@@ -124,8 +129,8 @@ const summary = computed(() => {
       <p v-if="summary" class="text-xs text-slate-500" data-test="resumo-ano">
         {{ summary.meses }} {{ summary.meses === 1 ? 'competência' : 'competências' }} ·
         média bruta {{ formatCurrency(summary.mediaBruto) }} ·
-        total bruto {{ formatCurrency(summary.totalBruto) }} ·
-        total líquido {{ formatCurrency(summary.totalLiquido) }}
+        total bruto {{ formatCurrency(summary.totalBruto) }}<template v-if="!semLiq"> ·
+        total líquido {{ formatCurrency(summary.totalLiquido) }}</template>
       </p>
     </div>
     <div class="overflow-x-auto">
@@ -162,7 +167,7 @@ const summary = computed(() => {
               {{ formatCompetence(h.mes, h.ano) }}
             </td>
             <td class="px-4 py-2.5 text-right font-bold text-slate-900 whitespace-nowrap">{{ formatCurrency(h.valor_bruto) }}</td>
-            <td class="px-4 py-2.5 text-right font-black text-slate-900 whitespace-nowrap">{{ formatCurrency(h.valor_liquido) }}</td>
+            <td class="px-4 py-2.5 text-right font-black text-slate-900 whitespace-nowrap">{{ semLiq ? 'não informado' : formatCurrency(h.valor_liquido) }}</td>
             <template v-if="hasContext">
               <td class="px-4 py-2.5 text-right text-slate-600 whitespace-nowrap" data-test="ctx-real">
                 <template v-if="h.contexto?.bruto_real != null">{{ formatCurrency(h.contexto.bruto_real) }}</template>

@@ -1,4 +1,4 @@
-import type { PersonHistoryEntry } from '@/core/types/api'
+import { semLiquido, type Fonte, type PersonHistoryEntry } from '@/core/types/api'
 import { collectComponentKeys, componentLabel } from './componentes'
 
 const SEP = ';'
@@ -12,7 +12,7 @@ function cell(value: string | number | null | undefined): string {
 }
 
 /** Gera CSV (separador ';', decimal com vírgula, compatível com Excel pt-BR). */
-export function historyToCsv(historico: PersonHistoryEntry[]): string {
+export function historyToCsv(historico: PersonHistoryEntry[], fonte?: Fonte): string {
   const keys = collectComponentKeys(historico)
   const header = ['Ano', 'Mês', 'Valor bruto', 'Valor líquido', ...keys.map(componentLabel)]
   const lines = [header.map(cell).join(SEP)]
@@ -21,7 +21,7 @@ export function historyToCsv(historico: PersonHistoryEntry[]): string {
       String(h.ano),
       h.mes,
       h.valor_bruto,
-      h.valor_liquido,
+      semLiquido(fonte) ? null : h.valor_liquido,
       ...keys.map((k) => (h.componentes?.[k] ?? null) as number | null),
     ]
     lines.push(row.map(cell).join(SEP))
