@@ -54,13 +54,15 @@ describe('useRemunerationSearch', () => {
     const { scope, api } = setup()
     const enabled = () => queryCalls.filter((c) => c.queryKey[1] === 'search').map((c) => c.enabled.value)
     expect(api.criteria.value).toBe(false)
-    expect(enabled()).toEqual([false, false, false])
+    expect(enabled()).toEqual(Array(8).fill(false))
     api.state.nome = 'maria'
     await nextTick()
     vi.advanceTimersByTime(260)
     await nextTick()
     expect(api.criteria.value).toBe(true)
-    expect(enabled()).toEqual([true, true, true])
+    // só DF, Senado e Federal (sempre disponíveis); estados sem competências carregadas ficam desligados
+    expect(enabled()).toEqual([true, true, true, false, false, false, false, false])
+    expect(api.available.value).toEqual(['DF', 'SENADO', 'FEDERAL'])
     scope.stop()
   })
 

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import type { PersonHistoryEntry } from '@/core/types/api'
+import type { ContextoBase, PersonHistoryEntry } from '@/core/types/api'
 import { formatCurrency } from '@/core/formatters/currency'
 import { formatCompetence } from '@/core/formatters/date'
 import { collectComponentKeys, componentLabel, isDiscount } from '../utils/componentes'
 
-const props = defineProps<{ historico: PersonHistoryEntry[] }>()
+const props = defineProps<{ historico: PersonHistoryEntry[]; contextoBase?: ContextoBase | null }>()
 
 const ALL = 'todos'
 
@@ -27,6 +27,15 @@ const rows = computed(() =>
     .filter((h) => selected.value === ALL || h.ano === selected.value)
     .reverse(),
 )
+// contexto econômico só aparece quando algum mês do ano escolhido tem os índices
+const hasContext = computed(() => rows.value.some((h) => h.contexto && h.contexto.bruto_real != null))
+const referenciaLabel = computed(() => {
+  const ref = props.contextoBase?.referencia
+  if (!ref) return ''
+  const [ano, mes] = ref.split('-')
+  return formatCompetence(mes, Number(ano))
+})
+
 // só as colunas que têm valor no ano escolhido
 const keys = computed(() => collectComponentKeys(rows.value))
 
@@ -126,6 +135,17 @@ const summary = computed(() => {
             <th class="sticky left-0 bg-slate-50 px-4 py-3 text-left">Competência</th>
             <th class="px-4 py-3 text-right">Bruto</th>
             <th class="px-4 py-3 text-right">Líquido</th>
+            <template v-if="hasContext">
+              <th class="px-4 py-3 text-right whitespace-nowrap text-sky-600" :title="contextoBase?.inflacao">
+                Bruto em R$ de {{ referenciaLabel }}
+              </th>
+              <th class="px-4 py-3 text-right whitespace-nowrap text-sky-600" :title="contextoBase?.salario_minimo">
+                Salários mín.
+              </th>
+              <th class="px-4 py-3 text-right whitespace-nowrap text-sky-600" :title="contextoBase?.teto">
+                % do teto
+              </th>
+            </template>
             <th
               v-for="k in keys"
               :key="k"
@@ -143,6 +163,24 @@ const summary = computed(() => {
             </td>
             <td class="px-4 py-2.5 text-right font-bold text-slate-900 whitespace-nowrap">{{ formatCurrency(h.valor_bruto) }}</td>
             <td class="px-4 py-2.5 text-right font-black text-slate-900 whitespace-nowrap">{{ formatCurrency(h.valor_liquido) }}</td>
+            <template v-if="hasContext">
+              <td class="px-4 py-2.5 text-right text-slate-600 whitespace-nowrap" data-test="ctx-real">
+                <template v-if="h.contexto?.bruto_real != null">{{ formatCurrency(h.contexto.bruto_real) }}</template>
+                <span v-else class="text-slate-300">—</span>
+              </td>
+              <td class="px-4 py-2.5 text-right text-slate-600 whitespace-nowrap" data-test="ctx-sm">
+                <template v-if="h.contexto?.salarios_minimos != null">
+                  {{ h.contexto.salarios_minimos.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }}
+                </template>
+                <span v-else class="text-slate-300">—</span>
+              </td>
+              <td class="px-4 py-2.5 text-right text-slate-600 whitespace-nowrap" data-test="ctx-teto">
+                <template v-if="h.contexto?.pct_teto != null">
+                  {{ h.contexto.pct_teto.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }}%
+                </template>
+                <span v-else class="text-slate-300">—</span>
+              </td>
+            </template>
             <td v-for="k in keys" :key="k" class="px-4 py-2.5 text-right text-slate-600 whitespace-nowrap">
               <template v-if="h.componentes?.[k]">{{ formatCurrency(h.componentes[k]) }}</template>
               <span v-else class="text-slate-300">—</span>
@@ -151,5 +189,8 @@ const summary = computed(() => {
         </tbody>
       </table>
     </div>
+    <p v-if="hasContext && contextoBase" class="px-6 py-3 text-[11px] text-slate-400 border-t border-slate-100" data-test="ctx-nota">
+      {{ contextoBase.teto }}
+    </p>
   </section>
 </template>

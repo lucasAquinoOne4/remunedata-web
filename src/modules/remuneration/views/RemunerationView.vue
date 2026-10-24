@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { SlidersHorizontal, X, SearchX, Lightbulb, FileDown } from 'lucide-vue-next'
-import { FONTE_LABEL, FONTES, type Fonte, type Suggestion } from '@/core/types/api'
+import { FONTE_LABEL, type Fonte, type Suggestion } from '@/core/types/api'
 import { useRemunerationSearch } from '../composables/useRemunerationSearch'
 import { useSuggest } from '../composables/useSuggest'
 import { formatTotal, PREVIEW_SIZE } from '../utils/search'
@@ -59,7 +59,7 @@ function seeAll(f: Fonte) {
 
 const total = computed(() =>
   state.fonte === 'ALL'
-    ? FONTES.reduce((acc, f) => acc + (counts.value[f]?.total ?? 0), 0)
+    ? search.available.value.reduce((acc, f) => acc + (counts.value[f]?.total ?? 0), 0)
     : (search.activeData.value?.total ?? 0),
 )
 const noResults = computed(
@@ -72,7 +72,7 @@ const noResults = computed(
     <div class="flex flex-col gap-1">
       <h2 class="text-3xl font-bold text-slate-900 font-serif tracking-tight">Consulta Pública</h2>
       <p class="text-slate-500 font-medium">
-        Encontre servidores no Governo do DF, Senado e Executivo Federal. Os resultados aparecem enquanto você digita.
+        Encontre servidores em governos estaduais, no Executivo Federal, no Senado e na Justiça do DF. Os resultados aparecem enquanto você digita.
       </p>
     </div>
 
@@ -87,6 +87,7 @@ const noResults = computed(
 
       <div class="flex flex-wrap items-center justify-between gap-3">
         <SearchTabs
+          :available="search.available.value"
           :model-value="state.fonte"
           :counts="counts"
           :loading="search.isFetching.value"
@@ -188,7 +189,7 @@ const noResults = computed(
 
     <!-- Todas: seções agrupadas -->
     <div v-else-if="state.fonte === 'ALL'" class="space-y-8" :class="{ 'opacity-70 transition-opacity': search.isFetching.value }">
-      <section v-for="f in FONTES" :key="f" class="space-y-3">
+      <section v-for="f in search.available.value" :key="f" class="space-y-3">
         <template v-if="sources[f].data.value && sources[f].data.value!.items.length">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">

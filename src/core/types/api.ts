@@ -6,14 +6,19 @@ export interface PaginationResponse<T> {
   pages: number
 }
 
-export type Fonte = 'DF' | 'SENADO' | 'FEDERAL'
+export type Fonte = 'DF' | 'SENADO' | 'FEDERAL' | 'CE' | 'PE' | 'GO' | 'SC' | 'JU'
 
-export const FONTES: readonly Fonte[] = ['DF', 'SENADO', 'FEDERAL'] as const
+export const FONTES: readonly Fonte[] = ['DF', 'SENADO', 'FEDERAL', 'CE', 'PE', 'GO', 'SC', 'JU'] as const
 
 export const FONTE_LABEL: Record<Fonte, string> = {
   DF: 'Governo do DF',
   SENADO: 'Senado',
   FEDERAL: 'Executivo Federal',
+  CE: 'Governo do Ceará',
+  PE: 'Governo de Pernambuco',
+  GO: 'Governo de Goiás',
+  SC: 'Governo de Santa Catarina',
+  JU: 'Justiça do DF',
 }
 
 /** Item de remuneração retornado pela busca (CPF sempre mascarado). */
@@ -110,12 +115,21 @@ export interface PersonIdentity {
   tipo: string | null
 }
 
+/** Contexto econômico do mês (IPCA, salário mínimo e teto). Qualquer campo pode faltar. */
+export interface HistoryContext {
+  bruto_real: number | null
+  salarios_minimos: number | null
+  teto: number | null
+  pct_teto: number | null
+}
+
 export interface PersonHistoryEntry {
   ano: number
   mes: string
   valor_bruto: number
   valor_liquido: number
   componentes: ComponentesMap
+  contexto?: HistoryContext
 }
 
 export interface PersonPeers {
@@ -145,6 +159,33 @@ export interface OtherSourceMatch {
   motivo: string
 }
 
+export interface ContextoBase {
+  referencia: string
+  inflacao: string
+  salario_minimo: string
+  teto: string
+}
+
+export interface TseBem {
+  tipo: string
+  quantidade: number
+  valor: number
+}
+
+export interface TseCandidatura {
+  ano_eleicao: number
+  cargo: string | null
+  uf: string | null
+  partido: string | null
+  ocupacao: string | null
+  situacao: string | null
+  resultado: string | null
+  patrimonio_declarado: number
+  bens: TseBem[]
+  confianca: MatchConfidence
+  motivo: string
+}
+
 export interface PersonProfile {
   fonte: Fonte
   id: string
@@ -153,6 +194,8 @@ export interface PersonProfile {
   ultimo: PersonHistoryEntry | null
   pares: PersonPeers | null
   outras_fontes: OtherSourceMatch[]
+  contexto_base?: ContextoBase | null
+  candidaturas_tse?: TseCandidatura[]
   ficha_federal: Record<string, unknown> | null
 }
 

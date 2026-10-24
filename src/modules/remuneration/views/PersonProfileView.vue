@@ -18,6 +18,7 @@ import PeerComparison from '../components/PeerComparison.vue'
 import OtherSources from '../components/OtherSources.vue'
 import FederalSheet from '../components/FederalSheet.vue'
 import HistoryTable from '../components/HistoryTable.vue'
+import TseCandidaturas from '../components/TseCandidaturas.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -145,7 +146,13 @@ function exportCsv() {
 
       <PeerComparison v-if="profile.pares && kpis" :pares="profile.pares" :bruto="kpis.bruto" />
 
-      <HistoryTable v-if="profile.historico.length" :historico="profile.historico" />
+      <HistoryTable
+        v-if="profile.historico.length"
+        :historico="profile.historico"
+        :contexto-base="profile.contexto_base"
+      />
+
+      <TseCandidaturas :candidaturas="profile.candidaturas_tse ?? []" />
 
       <OtherSources :matches="profile.outras_fontes" />
       <FederalSheet :ficha="profile.ficha_federal" />

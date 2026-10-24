@@ -69,3 +69,23 @@ describe('rótulos dos componentes (Senado, Federal e DF)', () => {
     expect(isDiscount('remuneracao_basica')).toBe(false)
   })
 })
+
+describe('HistoryTable (contexto econômico)', () => {
+  const ctx = { bruto_real: 2100.5, salarios_minimos: 1.4, teto: 46366.19, pct_teto: 4.3 }
+  const base = { referencia: '2026-09', inflacao: 'IPCA', salario_minimo: 'BCB', teto: 'Teto: Lei 14.520/2023' }
+
+  it('mostra valor real, salários mínimos e % do teto quando há contexto', () => {
+    const h = [{ ...mk(2026, '01', 2000), contexto: ctx }]
+    const w = mount(HistoryTable, { props: { historico: h, contextoBase: base } })
+    expect(w.get('[data-test="ctx-real"]').text()).toContain('2.100,50')
+    expect(w.get('[data-test="ctx-sm"]').text()).toBe('1,4')
+    expect(w.get('[data-test="ctx-teto"]').text()).toBe('4,3%')
+    expect(w.get('[data-test="ctx-nota"]').text()).toContain('Lei 14.520/2023')
+  })
+
+  it('sem contexto, não renderiza as colunas extras', () => {
+    const w = mount(HistoryTable, { props: { historico } })
+    expect(w.find('[data-test="ctx-real"]').exists()).toBe(false)
+    expect(w.find('[data-test="ctx-nota"]').exists()).toBe(false)
+  })
+})

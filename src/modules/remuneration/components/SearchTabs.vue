@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { FONTE_LABEL, FONTES, type Fonte } from '@/core/types/api'
+import { computed } from 'vue'
+import { FONTE_LABEL, type Fonte } from '@/core/types/api'
 import { formatTotal, type FonteTab } from '../utils/search'
 
-defineProps<{
+const props = defineProps<{
+  available: Fonte[]
   modelValue: FonteTab
   counts: Record<Fonte, { total: number; capped: boolean } | null>
   loading?: boolean
 }>()
 defineEmits<{ (e: 'update:modelValue', value: FonteTab): void }>()
 
-const tabs: { value: FonteTab; label: string }[] = [
+const tabs = computed<{ value: FonteTab; label: string }[]>(() => [
   { value: 'ALL', label: 'Todas' },
-  ...FONTES.map((f) => ({ value: f as FonteTab, label: FONTE_LABEL[f] })),
-]
+  ...props.available.map((f) => ({ value: f as FonteTab, label: FONTE_LABEL[f] })),
+])
 </script>
 
 <template>

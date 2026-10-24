@@ -28,6 +28,10 @@ watch(fonte, () => {
 })
 
 const ready = computed(() => periodsQuery.isFetched.value)
+// só fontes com competências carregadas (as três originais sempre aparecem)
+const fontes = computed(() =>
+  FONTES.filter((f) => ['DF', 'SENADO', 'FEDERAL'].includes(f) || (periodsQuery.data.value?.[f]?.length ?? 0) > 0),
+)
 const { data, isLoading, isFetching, isError } = useStats(fonte, ano, ready)
 
 const loading = computed(() => isLoading.value || !ready.value)
@@ -56,7 +60,7 @@ const charts = computed(() => [
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex gap-1 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm" role="tablist" aria-label="Fonte">
           <button
-            v-for="f in FONTES"
+            v-for="f in fontes"
             :key="f"
             type="button"
             role="tab"

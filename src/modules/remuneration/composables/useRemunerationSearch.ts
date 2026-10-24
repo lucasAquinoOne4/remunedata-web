@@ -55,6 +55,11 @@ export function useRemunerationSearch() {
 
   const criteria = computed(() => hasCriteria(effective.value))
 
+  /** Fontes com dados carregados. As três originais ficam sempre (fallback se /periods falhar). */
+  const available = computed<Fonte[]>(() =>
+    FONTES.filter((f) => ['DF', 'SENADO', 'FEDERAL'].includes(f) || (periods.value?.[f]?.length ?? 0) > 0),
+  )
+
   function sourceQuery(fonte: Fonte) {
     const params = computed(() => {
       const isActive = state.fonte === fonte
@@ -70,7 +75,7 @@ export function useRemunerationSearch() {
     return useQuery({
       queryKey: ['remuneration', 'search', params],
       queryFn: ({ signal }) => RemunerationService.search(params.value, signal),
-      enabled: computed(() => criteria.value && periodsReady.value),
+      enabled: computed(() => criteria.value && periodsReady.value && available.value.includes(fonte)),
       staleTime: SEARCH_STALE_MS,
       placeholderData: (previous: RemunerationSearchResponse | undefined) => previous,
     })
@@ -80,7 +85,13 @@ export function useRemunerationSearch() {
     DF: sourceQuery('DF'),
     SENADO: sourceQuery('SENADO'),
     FEDERAL: sourceQuery('FEDERAL'),
+    CE: sourceQuery('CE'),
+    PE: sourceQuery('PE'),
+    GO: sourceQuery('GO'),
+    SC: sourceQuery('SC'),
+    JU: sourceQuery('JU'),
   } as const
+
 
   const counts = computed(() =>
     Object.fromEntries(
@@ -109,19 +120,19 @@ export function useRemunerationSearch() {
 
   const isFetching = computed(() =>
     state.fonte === 'ALL'
-      ? FONTES.some((f) => sources[f].isFetching.value)
+      ? available.value.some((f) => sources[f].isFetching.value)
       : Boolean(activeSource.value?.isFetching.value),
   )
   const isInitialLoading = computed(() => {
     if (!criteria.value) return false
     if (!periodsReady.value) return true
     return state.fonte === 'ALL'
-      ? FONTES.every((f) => !sources[f].data.value && sources[f].isFetching.value)
+      ? available.value.every((f) => !sources[f].data.value && sources[f].isFetching.value)
       : !activeData.value && Boolean(activeSource.value?.isFetching.value)
   })
   const isError = computed(() =>
     state.fonte === 'ALL'
-      ? FONTES.every((f) => sources[f].isError.value)
+      ? available.value.every((f) => sources[f].isError.value)
       : Boolean(activeSource.value?.isError.value),
   )
 
@@ -186,6 +197,7 @@ export function useRemunerationSearch() {
   }
 
   return {
+    available,
     state,
     effective,
     periods,
