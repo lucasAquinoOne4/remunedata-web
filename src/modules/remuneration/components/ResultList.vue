@@ -16,10 +16,10 @@ defineProps<{
 <template>
   <div>
     <!-- Desktop: tabela -->
-    <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+    <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
       <table class="w-full text-left border-collapse">
-        <thead class="bg-slate-50/70 border-b border-slate-100">
-          <tr class="text-xs font-bold text-slate-500 uppercase tracking-wider">
+        <thead class="bg-slate-50 border-b border-slate-200">
+          <tr class="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
             <th class="px-5 py-3">Servidor</th>
             <th class="px-5 py-3 hidden lg:table-cell">Órgão</th>
             <th class="px-5 py-3">Cargo</th>
@@ -33,7 +33,7 @@ defineProps<{
             <td class="px-5 py-3.5 max-w-[280px]">
               <RouterLink
                 :to="personRoute(item)"
-                class="font-bold text-slate-900 hover:underline decoration-slate-300 underline-offset-4"
+                class="font-semibold text-slate-900 hover:underline decoration-slate-300 underline-offset-4"
               >
                 <HighlightedText :text="item.nome_servidor" :term="term" />
               </RouterLink>
@@ -50,10 +50,10 @@ defineProps<{
                 {{ formatCompetence(item.mes_referencia, item.ano_exercicio) }}
               </span>
             </td>
-            <td class="px-5 py-3.5 text-right font-bold text-slate-900 whitespace-nowrap">
+            <td class="px-5 py-3.5 text-right font-semibold text-slate-900 whitespace-nowrap">
               {{ formatCurrency(item.valor_bruto) }}
             </td>
-            <td class="px-5 py-3.5 text-right font-black text-slate-900 whitespace-nowrap">
+            <td class="px-5 py-3.5 text-right font-semibold text-slate-900 whitespace-nowrap">
               {{ semLiquido(item.fonte) ? 'não informado' : formatCurrency(item.valor_liquido) }}
             </td>
           </tr>
@@ -62,30 +62,30 @@ defineProps<{
     </div>
 
     <!-- Mobile: cards -->
-    <ul class="md:hidden space-y-3">
+    <ul class="md:hidden space-y-2.5">
       <li v-for="item in items" :key="`${item.fonte}-${item.id}`">
         <RouterLink
           :to="personRoute(item)"
-          class="block bg-white rounded-2xl border border-slate-200 p-4 shadow-sm active:bg-slate-50"
+          class="block bg-white rounded-2xl border border-slate-200 p-4 active:bg-slate-50"
         >
           <div class="flex items-start justify-between gap-3">
-            <p class="font-bold text-slate-900 leading-snug">
+            <p class="font-semibold text-slate-900 leading-snug">
               <HighlightedText :text="item.nome_servidor" :term="term" />
             </p>
             <FonteBadge v-if="showFonte" :fonte="item.fonte" short />
           </div>
           <p v-if="item.cargo" class="text-sm text-slate-600 mt-1">{{ item.cargo }}</p>
-          <p v-if="item.nome_orgao" class="text-xs text-slate-400 mt-0.5">{{ item.nome_orgao }}</p>
+          <p v-if="item.nome_orgao" class="text-xs text-slate-500 mt-0.5">{{ item.nome_orgao }}</p>
           <div class="mt-3 flex items-end justify-between">
             <span class="font-mono text-[11px] bg-slate-100 px-2 py-1 rounded text-slate-600">
               {{ formatCompetence(item.mes_referencia, item.ano_exercicio) }}
             </span>
             <div class="text-right">
-              <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Bruto / Líquido</p>
+              <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Bruto / Líquido</p>
               <p class="text-sm text-slate-900">
-                <span class="font-bold">{{ formatCurrency(item.valor_bruto) }}</span>
+                <span class="font-semibold">{{ formatCurrency(item.valor_bruto) }}</span>
                 <span class="text-slate-300 mx-1">/</span>
-                <span class="font-black">{{ semLiquido(item.fonte) ? 'não informado' : formatCurrency(item.valor_liquido) }}</span>
+                <span class="font-semibold">{{ semLiquido(item.fonte) ? 'não informado' : formatCurrency(item.valor_liquido) }}</span>
               </p>
             </div>
           </div>

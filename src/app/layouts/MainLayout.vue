@@ -147,8 +147,8 @@ const handleLogout = async () => {
           >
             <Menu class="w-6 h-6" />
           </button>
-          <div class="hidden sm:block text-xs text-slate-400 font-semibold uppercase tracking-wider">
-            Portal da Transparência · DF, Senado e Federal
+          <div class="hidden sm:block text-xs text-slate-500 font-semibold uppercase tracking-wider">
+            Dados abertos de remuneração do setor público
           </div>
         </div>
 
@@ -196,7 +196,7 @@ const handleLogout = async () => {
       </header>
 
       <!-- View Content -->
-      <section class="p-4 lg:p-8 max-w-7xl w-full mx-auto">
+      <section class="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
         <RouterView />
       </section>
     </main>

@@ -25,7 +25,7 @@ const months = computed(() => {
 
 const inputClass =
   'w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all'
-const labelClass = 'text-xs font-bold text-slate-400 uppercase tracking-wider ml-1'
+const labelClass = 'text-[11px] font-semibold text-slate-600 uppercase tracking-wider'
 
 function onAno(event: Event) {
   const v = (event.target as HTMLSelectElement).value
@@ -35,7 +35,7 @@ function onAno(event: Event) {
 </script>
 
 <template>
-  <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+  <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
     <div class="space-y-1">
       <label class="block" :class="labelClass" for="f-cargo">Cargo</label>
       <input
@@ -80,7 +80,7 @@ function onAno(event: Event) {
         </select>
       </div>
     </template>
-    <p v-else class="md:col-span-2 text-xs text-slate-400 self-end pb-2">
+    <p v-else class="md:col-span-2 text-xs text-slate-500 self-end pb-2">
       Em "Todas", cada fonte usa o seu período mais recente. Escolha uma fonte para filtrar por ano e mês.
     </p>
   </div>

@@ -126,7 +126,7 @@ const handleCheckoutSubmit = async (formData: { name: string, tax_id: string, ce
         Escolha o plano ideal para <span class="italic text-slate-400 font-medium">sua jornada.</span>
       </h1>
       <p class="text-xl text-slate-500 max-w-2xl mx-auto font-medium leading-relaxed">
-        Acesso ilimitado à ferramenta mais poderosa de transparência do Distrito Federal.
+        Acesso ilimitado à consulta de remuneração do setor público: estados, Executivo Federal, Senado e Justiça do DF.
         Simples, seguro e transparente.
       </p>
     </div>

@@ -31,3 +31,45 @@
     @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors border-2 border-transparent bg-clip-padding;
   }
 }
+
+/* Padrões de interface compartilhados (ritmo, hierarquia e cores contidas) */
+@layer components {
+  .page-title {
+    @apply font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900;
+  }
+
+  .page-lead {
+    @apply text-sm sm:text-base text-slate-600 max-w-3xl leading-relaxed;
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+  }
+
+  /* Cartão principal de conteúdo */
+  .card {
+    @apply bg-white rounded-2xl border border-slate-200 p-5 sm:p-6;
+  }
+
+  /* Cartão secundário: cruzamentos e dados complementares */
+  .card-sub {
+    @apply bg-slate-50/70 rounded-2xl border border-slate-200 p-4 sm:p-6;
+  }
+
+  .section-title {
+    @apply font-serif text-lg sm:text-xl font-semibold tracking-tight text-slate-900;
+  }
+
+  .section-sub {
+    @apply text-sm text-slate-600 mt-0.5;
+  }
+
+  /* Aviso discreto, legível, sem gritar */
+  .notice {
+    @apply flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50/60 px-3.5 py-3 text-[13px] leading-relaxed text-slate-700;
+  }
+
+  .notice > svg {
+    @apply w-4 h-4 shrink-0 mt-0.5 text-amber-600;
+  }
+}

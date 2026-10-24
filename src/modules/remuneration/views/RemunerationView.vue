@@ -12,7 +12,6 @@ import SearchTabs from '../components/SearchTabs.vue'
 import SearchFilters from '../components/SearchFilters.vue'
 import ResultList from '../components/ResultList.vue'
 import PaginationBar from '../components/PaginationBar.vue'
-import FonteBadge from '../components/FonteBadge.vue'
 
 const search = useRemunerationSearch()
 const { state, effective, sources, counts } = search
@@ -69,14 +68,14 @@ const noResults = computed(
 
 <template>
   <div class="space-y-6 pb-10">
-    <div class="flex flex-col gap-1">
-      <h2 class="text-3xl font-bold text-slate-900 font-serif tracking-tight">Consulta Pública</h2>
-      <p class="text-slate-500 font-medium">
+    <div class="space-y-1.5">
+      <h2 class="page-title">Consulta Pública</h2>
+      <p class="page-lead">
         Encontre servidores em governos estaduais, no Executivo Federal, no Senado e na Justiça do DF. Os resultados aparecem enquanto você digita.
       </p>
     </div>
 
-    <div class="space-y-3">
+    <div class="space-y-4">
       <SearchBox
         v-model="nomeRef"
         :suggestions="suggestions"
@@ -95,7 +94,7 @@ const noResults = computed(
         />
         <button
           type="button"
-          class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors"
+          class="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold border transition-colors"
           :class="showFilters ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'"
           :aria-expanded="showFilters"
           @click="showFilters = !showFilters"
@@ -143,13 +142,13 @@ const noResults = computed(
     <!-- Estado inicial / dicas -->
     <div
       v-if="!search.criteria.value"
-      class="bg-white border border-dashed border-slate-300 rounded-3xl p-8 md:p-12 text-center space-y-4"
+      class="bg-white border border-dashed border-slate-300 rounded-2xl p-6 sm:p-10 text-center space-y-4"
     >
       <div class="mx-auto w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500">
         <Lightbulb class="w-6 h-6" />
       </div>
-      <h3 class="text-xl font-bold font-serif text-slate-900">Comece digitando um nome</h3>
-      <ul class="text-sm text-slate-500 space-y-1">
+      <h3 class="section-title">Comece digitando um nome</h3>
+      <ul class="text-sm text-slate-600 space-y-1.5">
         <li>Digite ao menos 2 letras do nome — acentos e maiúsculas não importam.</li>
         <li>Use <kbd class="font-mono border border-slate-200 rounded px-1 bg-slate-50">/</kbd> para focar a busca de qualquer lugar.</li>
         <li>Abra "Filtros" para buscar só por cargo ou órgão.</li>
@@ -159,7 +158,7 @@ const noResults = computed(
           v-for="e in examples"
           :key="e"
           type="button"
-          class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+          class="px-3.5 py-1.5 rounded-full border border-slate-200 text-sm text-slate-700 hover:bg-slate-50"
           @click="tryExample(e)"
         >
           {{ e }}
@@ -173,36 +172,35 @@ const noResults = computed(
     </div>
 
     <!-- Erro -->
-    <div v-else-if="search.isError.value" class="bg-red-50 border border-red-100 text-red-700 rounded-2xl p-6 text-center">
+    <div v-else-if="search.isError.value" class="bg-red-50 border border-red-100 text-red-800 rounded-2xl p-6 text-center">
       <p class="font-bold">Não foi possível buscar agora.</p>
       <p class="text-sm">Tente novamente em instantes.</p>
     </div>
 
     <!-- Sem resultados -->
-    <div v-else-if="noResults" class="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-2">
+    <div v-else-if="noResults" class="card p-10 text-center space-y-2">
       <SearchX class="w-8 h-8 mx-auto text-slate-300" />
-      <h3 class="text-lg font-bold text-slate-900">Nenhum servidor encontrado</h3>
-      <p class="text-sm text-slate-500">
+      <h3 class="section-title">Nenhum servidor encontrado</h3>
+      <p class="text-sm text-slate-600">
         Tente menos letras, remova filtros ou escolha outra fonte. Pode não haver dados carregados no período.
       </p>
     </div>
 
     <!-- Todas: seções agrupadas -->
-    <div v-else-if="state.fonte === 'ALL'" class="space-y-8" :class="{ 'opacity-70 transition-opacity': search.isFetching.value }">
+    <div v-else-if="state.fonte === 'ALL'" class="space-y-7" :class="{ 'opacity-70 transition-opacity': search.isFetching.value }">
       <section v-for="f in search.available.value" :key="f" class="space-y-3">
         <template v-if="sources[f].data.value && sources[f].data.value!.items.length">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <h3 class="text-xl font-bold font-serif text-slate-900">{{ FONTE_LABEL[f] }}</h3>
-              <FonteBadge :fonte="f" short />
-              <span class="text-sm text-slate-500">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 min-w-0">
+              <h3 class="section-title">{{ FONTE_LABEL[f] }}</h3>
+              <span class="text-sm text-slate-600">
                 {{ formatTotal(sources[f].data.value!.total, sources[f].data.value!.total_capped) }} resultados
               </span>
             </div>
             <button
               v-if="sources[f].data.value!.total > PREVIEW_SIZE"
               type="button"
-              class="text-sm font-semibold text-slate-700 hover:text-slate-900 underline underline-offset-4"
+              class="shrink-0 text-sm font-semibold text-slate-900 hover:underline underline-offset-4 decoration-slate-400"
               @click="seeAll(f)"
             >
               Ver todos

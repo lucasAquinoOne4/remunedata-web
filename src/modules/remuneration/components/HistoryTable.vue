@@ -70,17 +70,17 @@ const summary = computed(() => {
 </script>
 
 <template>
-  <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-    <div class="p-6 pb-3 space-y-3">
+  <section class="card p-0 overflow-hidden">
+    <div class="p-5 sm:p-6 pb-4 space-y-3">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 class="text-xl font-bold font-serif text-slate-900">Mês a mês</h3>
-          <p class="text-sm text-slate-500">Todos os componentes informados pela fonte.</p>
+          <h3 class="section-title">Mês a mês</h3>
+          <p class="section-sub">Todos os componentes informados pela fonte.</p>
         </div>
-        <nav v-if="years.length > 1" class="flex flex-wrap items-center gap-1.5" aria-label="Paginação por anos">
+        <nav v-if="years.length > 1" class="flex flex-nowrap items-center gap-1 max-w-full overflow-x-auto pb-1 [&>*]:shrink-0" aria-label="Paginação por anos">
           <button
             type="button"
-            class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
             :disabled="!canNewer"
             aria-label="Ano mais recente"
             @click="go(-1)"
@@ -117,7 +117,7 @@ const summary = computed(() => {
           </button>
           <button
             type="button"
-            class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
             :disabled="!canOlder"
             aria-label="Ano mais antigo"
             @click="go(1)"
@@ -126,7 +126,7 @@ const summary = computed(() => {
           </button>
         </nav>
       </div>
-      <p v-if="summary" class="text-xs text-slate-500" data-test="resumo-ano">
+      <p v-if="summary" class="text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2" data-test="resumo-ano">
         {{ summary.meses }} {{ summary.meses === 1 ? 'competência' : 'competências' }} ·
         média bruta {{ formatCurrency(summary.mediaBruto) }} ·
         total bruto {{ formatCurrency(summary.totalBruto) }}<template v-if="!semLiq"> ·
@@ -136,26 +136,26 @@ const summary = computed(() => {
     <div class="overflow-x-auto">
       <table class="w-full text-sm border-collapse">
         <thead>
-          <tr class="bg-slate-50 text-[10px] uppercase tracking-widest font-black text-slate-500">
-            <th class="sticky left-0 bg-slate-50 px-4 py-3 text-left">Competência</th>
-            <th class="px-4 py-3 text-right">Bruto</th>
-            <th class="px-4 py-3 text-right">Líquido</th>
+          <tr class="bg-slate-50 border-y border-slate-200 text-[11px] uppercase tracking-wider font-semibold text-slate-600">
+            <th class="sticky left-0 bg-slate-50 px-4 py-2.5 text-left">Competência</th>
+            <th class="px-4 py-2.5 text-right">Bruto</th>
+            <th class="px-4 py-2.5 text-right">Líquido</th>
             <template v-if="hasContext">
-              <th class="px-4 py-3 text-right whitespace-nowrap text-sky-600" :title="contextoBase?.inflacao">
+              <th class="px-4 py-2.5 text-right whitespace-nowrap text-slate-900 bg-slate-100/70" :title="contextoBase?.inflacao">
                 Bruto em R$ de {{ referenciaLabel }}
               </th>
-              <th class="px-4 py-3 text-right whitespace-nowrap text-sky-600" :title="contextoBase?.salario_minimo">
+              <th class="px-4 py-2.5 text-right whitespace-nowrap text-slate-900 bg-slate-100/70" :title="contextoBase?.salario_minimo">
                 Salários mín.
               </th>
-              <th class="px-4 py-3 text-right whitespace-nowrap text-sky-600" :title="contextoBase?.teto">
+              <th class="px-4 py-2.5 text-right whitespace-nowrap text-slate-900 bg-slate-100/70" :title="contextoBase?.teto">
                 % do teto
               </th>
             </template>
             <th
               v-for="k in keys"
               :key="k"
-              class="px-4 py-3 text-right whitespace-nowrap"
-              :class="isDiscount(k) ? 'text-rose-500' : ''"
+              class="px-4 py-2.5 text-right whitespace-nowrap"
+              :class="isDiscount(k) ? 'text-rose-700' : ''"
             >
               {{ componentLabel(k) }}
             </th>
@@ -163,38 +163,38 @@ const summary = computed(() => {
         </thead>
         <tbody class="divide-y divide-slate-100">
           <tr v-for="h in rows" :key="`${h.ano}-${h.mes}`" class="hover:bg-slate-50/70">
-            <td class="sticky left-0 bg-white px-4 py-2.5 font-mono text-xs text-slate-600 whitespace-nowrap">
+            <td class="sticky left-0 bg-white px-4 py-2.5 font-mono text-xs text-slate-700 whitespace-nowrap">
               {{ formatCompetence(h.mes, h.ano) }}
             </td>
-            <td class="px-4 py-2.5 text-right font-bold text-slate-900 whitespace-nowrap">{{ formatCurrency(h.valor_bruto) }}</td>
-            <td class="px-4 py-2.5 text-right font-black text-slate-900 whitespace-nowrap">{{ semLiq ? 'não informado' : formatCurrency(h.valor_liquido) }}</td>
+            <td class="px-4 py-2.5 text-right font-semibold text-slate-900 whitespace-nowrap">{{ formatCurrency(h.valor_bruto) }}</td>
+            <td class="px-4 py-2.5 text-right font-semibold text-slate-900 whitespace-nowrap">{{ semLiq ? 'não informado' : formatCurrency(h.valor_liquido) }}</td>
             <template v-if="hasContext">
-              <td class="px-4 py-2.5 text-right text-slate-600 whitespace-nowrap" data-test="ctx-real">
+              <td class="px-4 py-2.5 text-right text-slate-700 whitespace-nowrap bg-slate-50/60" data-test="ctx-real">
                 <template v-if="h.contexto?.bruto_real != null">{{ formatCurrency(h.contexto.bruto_real) }}</template>
-                <span v-else class="text-slate-300">—</span>
+                <span v-else class="text-slate-400">—</span>
               </td>
-              <td class="px-4 py-2.5 text-right text-slate-600 whitespace-nowrap" data-test="ctx-sm">
+              <td class="px-4 py-2.5 text-right text-slate-700 whitespace-nowrap bg-slate-50/60" data-test="ctx-sm">
                 <template v-if="h.contexto?.salarios_minimos != null">
                   {{ h.contexto.salarios_minimos.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }}
                 </template>
-                <span v-else class="text-slate-300">—</span>
+                <span v-else class="text-slate-400">—</span>
               </td>
-              <td class="px-4 py-2.5 text-right text-slate-600 whitespace-nowrap" data-test="ctx-teto">
+              <td class="px-4 py-2.5 text-right text-slate-700 whitespace-nowrap bg-slate-50/60" data-test="ctx-teto">
                 <template v-if="h.contexto?.pct_teto != null">
                   {{ h.contexto.pct_teto.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }}%
                 </template>
-                <span v-else class="text-slate-300">—</span>
+                <span v-else class="text-slate-400">—</span>
               </td>
             </template>
             <td v-for="k in keys" :key="k" class="px-4 py-2.5 text-right text-slate-600 whitespace-nowrap">
               <template v-if="h.componentes?.[k]">{{ formatCurrency(h.componentes[k]) }}</template>
-              <span v-else class="text-slate-300">—</span>
+              <span v-else class="text-slate-400">—</span>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p v-if="hasContext && contextoBase" class="px-6 py-3 text-[11px] text-slate-400 border-t border-slate-100" data-test="ctx-nota">
+    <p v-if="hasContext && contextoBase" class="px-5 sm:px-6 py-3 text-xs text-slate-500 border-t border-slate-100" data-test="ctx-nota">
       {{ contextoBase.teto }}
     </p>
   </section>

@@ -56,11 +56,11 @@ function exportCsv() {
 </script>
 
 <template>
-  <div class="space-y-6 pb-10">
+  <div class="space-y-5 pb-10">
     <div class="flex items-center justify-between gap-3">
       <button
         type="button"
-        class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900"
+        class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 rounded-lg -ml-1 px-1 py-1"
         @click="goBack"
       >
         <ArrowLeft class="w-4 h-4" /> Voltar à busca
@@ -68,30 +68,28 @@ function exportCsv() {
       <BaseButton
         v-if="profile && profile.historico.length"
         variant="outline"
-        class="gap-2 text-xs font-bold rounded-xl"
+        class="gap-2 text-xs font-semibold rounded-xl"
         @click="exportCsv"
       >
-        <FileDown class="w-4 h-4" /> Exportar histórico (CSV)
+        <FileDown class="w-4 h-4" /> <span class="hidden sm:inline">Exportar histórico (CSV)</span><span class="sm:hidden">CSV</span>
       </BaseButton>
     </div>
 
     <!-- Carregando -->
-    <div v-if="isLoading" class="space-y-6" aria-busy="true">
-      <BaseSkeleton height="160px" rounded="rounded-3xl" />
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <BaseSkeleton v-for="i in 3" :key="i" height="96px" rounded="rounded-2xl" />
-      </div>
-      <BaseSkeleton height="320px" rounded="rounded-3xl" />
+    <div v-if="isLoading" class="space-y-5" aria-busy="true">
+      <BaseSkeleton height="160px" rounded="rounded-2xl" />
+      <BaseSkeleton height="110px" rounded="rounded-2xl" />
+      <BaseSkeleton height="320px" rounded="rounded-2xl" />
     </div>
 
     <!-- Indisponível / erro -->
     <div
       v-else-if="isError || !profile"
-      class="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-2"
+      class="card p-12 text-center space-y-2"
     >
       <UserX class="w-10 h-10 mx-auto text-slate-300" />
-      <h2 class="text-xl font-bold font-serif text-slate-900">Perfil indisponível</h2>
-      <p class="text-sm text-slate-500">
+      <h2 class="section-title">Perfil indisponível</h2>
+      <p class="text-sm text-slate-600">
         {{ isError ? 'Não foi possível carregar este perfil agora.' : 'Ainda não há dados de perfil para esta pessoa.' }}
       </p>
     </div>
@@ -99,55 +97,57 @@ function exportCsv() {
     <template v-else>
       <PersonHeader :fonte="fonte" :nome="nome" :identidade="profile.identidade" />
 
-      <!-- KPIs -->
-      <div v-if="kpis && ultimo" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <p class="text-[10px] uppercase tracking-widest font-black text-slate-400">
-            Bruto · {{ formatCompetence(ultimo.mes, ultimo.ano) }}
-          </p>
-          <p class="text-3xl font-bold text-slate-900 mt-1">{{ formatCurrency(kpis.bruto) }}</p>
+      <!-- KPIs: um bloco só, o bruto em destaque -->
+      <section
+        v-if="kpis && ultimo"
+        class="card p-0 grid grid-cols-2 md:grid-cols-3 overflow-hidden"
+        aria-label="Remuneração do último mês"
+      >
+        <div class="col-span-2 md:col-span-1 p-5 sm:p-6 border-b md:border-b-0 md:border-r border-slate-100">
+          <p class="eyebrow">Bruto · {{ formatCompetence(ultimo.mes, ultimo.ano) }}</p>
+          <p class="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mt-1.5">{{ formatCurrency(kpis.bruto) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <p class="text-[10px] uppercase tracking-widest font-black text-slate-400">Líquido</p>
-          <p class="text-3xl font-bold text-slate-900 mt-1">{{ semLiquido(fonte) ? 'Não informado' : formatCurrency(kpis.liquido) }}</p>
+        <div class="p-4 sm:p-6 border-r border-slate-100">
+          <p class="eyebrow">Líquido</p>
+          <p class="text-xl sm:text-3xl font-semibold tracking-tight text-slate-900 mt-1.5">{{ semLiquido(fonte) ? 'Não informado' : formatCurrency(kpis.liquido) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <p class="text-[10px] uppercase tracking-widest font-black text-slate-400">Descontos</p>
+        <div class="p-4 sm:p-6 md:border-l md:border-slate-100">
+          <p class="eyebrow">Descontos</p>
           <template v-if="semLiquido(fonte)">
-            <p class="text-3xl font-bold text-slate-900 mt-1">Não informado</p>
-            <p class="text-xs text-slate-500">A fonte publica apenas o valor bruto.</p>
+            <p class="text-xl sm:text-3xl font-semibold tracking-tight text-slate-900 mt-1.5">Não informado</p>
+            <p class="text-xs text-slate-600 mt-1">A fonte publica apenas o valor bruto.</p>
           </template>
           <template v-else>
-            <p class="text-3xl font-bold text-rose-600 mt-1">
+            <p class="text-xl sm:text-3xl font-semibold tracking-tight text-slate-900 mt-1.5">
               {{ kpis.descontosPct.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }}%
             </p>
-            <p class="text-xs text-slate-500">{{ formatCurrency(kpis.descontos) }} no mês</p>
+            <p class="text-xs text-slate-600 mt-1">{{ formatCurrency(kpis.descontos) }} no mês</p>
           </template>
         </div>
-      </div>
-      <p v-else class="text-sm text-slate-400 text-center">Sem valores de remuneração para este perfil.</p>
+      </section>
+      <p v-else class="text-sm text-slate-500 text-center">Sem valores de remuneração para este perfil.</p>
 
       <!-- Gráficos -->
-      <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
         <section
           v-if="profile.historico.length > 0"
-          class="xl:col-span-3 bg-white rounded-3xl border border-slate-200 shadow-sm p-6"
+          class="card lg:col-span-3"
         >
-          <h3 class="text-xl font-bold font-serif text-slate-900 mb-1">Evolução</h3>
-          <p class="text-sm text-slate-500 mb-4">
+          <h3 class="section-title">Evolução</h3>
+          <p class="section-sub mb-4">
             {{ semLiquido(fonte) ? 'Remuneração bruta mês a mês.' : 'Remuneração bruta x líquida mês a mês.' }}
           </p>
-          <BaseChart :option="evolutionOption" height="320px" />
+          <BaseChart :option="evolutionOption" height="300px" />
         </section>
         <section
           v-if="hasComponents"
-          class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6"
-          :class="profile.historico.length > 0 ? 'xl:col-span-2' : 'xl:col-span-5'"
+          class="card"
+          :class="profile.historico.length > 0 ? 'lg:col-span-2' : 'lg:col-span-5'"
         >
-          <h3 class="text-xl font-bold font-serif text-slate-900 mb-1">Composição</h3>
-          <p class="text-sm text-slate-500 mb-2">
-            <span class="inline-block w-2.5 h-2.5 rounded-sm bg-slate-900 mr-1"></span>proventos
-            <span class="inline-block w-2.5 h-2.5 rounded-sm bg-rose-600 ml-3 mr-1"></span>descontos
+          <h3 class="section-title">Composição</h3>
+          <p class="section-sub mb-3 flex items-center gap-x-4">
+            <span class="inline-flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 rounded-sm bg-slate-900"></span>proventos</span>
+            <span class="inline-flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 rounded-sm bg-rose-600"></span>descontos</span>
           </p>
           <BaseChart :option="compositionOption" :height="compositionHeight" />
         </section>
@@ -162,10 +162,19 @@ function exportCsv() {
         :fonte="fonte"
       />
 
-      <TseCandidaturas :candidaturas="profile.candidaturas_tse ?? []" />
-      <ParticipacoesSocietarias :participacoes="profile.participacoes_societarias ?? []" />
+      <!-- Cruzamentos com outras bases: secundários, com avisos próprios -->
+      <section class="space-y-4 pt-4" aria-labelledby="cruzamentos-titulo">
+        <div>
+          <h2 id="cruzamentos-titulo" class="eyebrow">Cruzamentos com outras bases</h2>
+          <p class="text-sm text-slate-600 mt-1 max-w-3xl">
+            Registros ligados a esta pessoa por nome e dígitos parciais do CPF. São indícios, não confirmação de identidade.
+          </p>
+        </div>
+        <TseCandidaturas :candidaturas="profile.candidaturas_tse ?? []" />
+        <ParticipacoesSocietarias :participacoes="profile.participacoes_societarias ?? []" />
+        <OtherSources :matches="profile.outras_fontes" />
+      </section>
 
-      <OtherSources :matches="profile.outras_fontes" />
       <FederalSheet :ficha="profile.ficha_federal" />
     </template>
   </div>

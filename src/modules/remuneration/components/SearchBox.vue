@@ -115,7 +115,7 @@ defineExpose({ focus: () => inputEl.value?.focus() })
         :aria-controls="listId"
         :aria-activedescendant="activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined"
         :placeholder="placeholder ?? 'Busque por nome do servidor…'"
-        class="w-full pl-12 pr-24 py-4 bg-white border border-slate-200 rounded-2xl text-lg font-medium shadow-sm focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all"
+        class="w-full pl-12 pr-24 py-3.5 sm:py-4 bg-white border border-slate-200 rounded-2xl text-base sm:text-lg font-medium shadow-sm focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all"
         @input="onInput"
         @keydown="onKeydown"
         @focus="open = true"

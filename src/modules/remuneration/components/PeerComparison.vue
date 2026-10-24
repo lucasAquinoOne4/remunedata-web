@@ -18,17 +18,18 @@ const stats = computed(() => [
 </script>
 
 <template>
-  <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-5">
+  <section class="card space-y-5">
     <div>
-      <h3 class="text-xl font-bold font-serif text-slate-900">Comparação com pares</h3>
-      <p class="text-sm text-slate-500">
+      <h3 class="section-title">Comparação com pares</h3>
+      <p class="section-sub">
         {{ pares.criterio }}<template v-if="pares.cargo"> · {{ pares.cargo }}</template> ·
         {{ pares.n.toLocaleString('pt-BR') }} pessoas · {{ formatCompetence(pares.mes, pares.ano) }}
       </p>
     </div>
 
     <div class="space-y-2">
-      <div class="relative h-3 rounded-full bg-gradient-to-r from-slate-100 via-slate-200 to-slate-300">
+      <div class="relative h-2.5 rounded-full bg-slate-100">
+        <div class="absolute inset-y-0 left-0 rounded-full bg-slate-300" :style="{ width: `${position}%` }"></div>
         <div
           class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-slate-900 ring-4 ring-white shadow"
           :style="{ left: `${position}%` }"
@@ -36,22 +37,22 @@ const stats = computed(() => [
           :aria-label="`Percentil ${Math.round(position)}`"
         ></div>
       </div>
-      <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-400">
+      <div class="flex justify-between eyebrow">
         <span>Menor</span>
         <span>Percentil {{ Math.round(position) }}</span>
         <span>Maior</span>
       </div>
-      <p class="text-sm font-semibold text-slate-800">{{ percentilText(pares.percentil) }}</p>
+      <p class="text-sm font-semibold text-slate-900 pt-1">{{ percentilText(pares.percentil) }}</p>
     </div>
 
-    <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      <div class="rounded-2xl bg-slate-900 text-white p-4">
-        <dt class="text-[10px] uppercase tracking-widest font-black text-slate-400">Esta pessoa</dt>
-        <dd class="text-lg font-bold">{{ formatCurrency(bruto) }}</dd>
+    <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="rounded-xl bg-slate-900 text-white p-4 col-span-2 sm:col-span-1">
+        <dt class="text-[11px] uppercase tracking-wider font-semibold text-slate-300">Esta pessoa</dt>
+        <dd class="text-lg font-semibold mt-0.5">{{ formatCurrency(bruto) }}</dd>
       </div>
-      <div v-for="s in stats" :key="s.label" class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
-        <dt class="text-[10px] uppercase tracking-widest font-black text-slate-400">{{ s.label }}</dt>
-        <dd class="text-lg font-bold text-slate-900">{{ formatCurrency(s.value) }}</dd>
+      <div v-for="s in stats" :key="s.label" class="rounded-xl bg-slate-50 border border-slate-100 p-4 last:col-span-2 sm:last:col-span-1">
+        <dt class="eyebrow">{{ s.label }}</dt>
+        <dd class="text-lg font-semibold text-slate-900 mt-0.5">{{ formatCurrency(s.value) }}</dd>
       </div>
     </dl>
   </section>

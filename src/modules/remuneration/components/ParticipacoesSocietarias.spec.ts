@@ -47,7 +47,7 @@ describe('ParticipacoesSocietarias', () => {
     expect(situacoes[0].classes().join(' ')).toContain('emerald')
     expect(situacoes[1].text()).toContain('Baixada')
     expect(situacoes[1].text()).toContain('31/12/2020')
-    expect(situacoes[1].classes().join(' ')).toContain('amber')
+    expect(situacoes[1].classes().join(' ')).toContain('slate')
     expect(w.get('[data-test="rfb-capital"]').text()).toContain('150.000,50')
   })
 
